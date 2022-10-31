@@ -1,4 +1,3 @@
-import math
 import random
 import numpy as np
 from scipy.optimize import minimize
@@ -41,7 +40,7 @@ def popexpo(params, C, T):
     return np.exp(rates @ T_)
 
 
-def objective(PopN, Params, DATA, Conc, Time, NR, ConcT, TimeT, model):
+def objective(PopN, Params, DATA, concvec, timevec, NR, model, T, C, NH, NL):
     """
     This function calculates the negative value of log-likelihood for a given
     model. Function's minimum is the optimal parameter estimate. 
@@ -91,44 +90,34 @@ def objective(PopN, Params, DATA, Conc, Time, NR, ConcT, TimeT, model):
 
     sum_resid = 0
 
-    # The vectors containing time points and concentration levels should be
-    # sorted in order to easily create a matrix with two levels of noise:
-    timevec = np.sort(Time)[1:]  # time starts from the second value since the
-    # first one is taken from the data
-    concvec = np.sort(Conc)
 
-    # Calculation of noise:
-    T = sum(np.where(timevec >= TimeT, 1, 0))  # number of time points with higher
-    # level of noise
-    C = sum(np.where(concvec <= ConcT, 1, 0))  # number of concentrations with higher
-    # level of noise
-    NH = T * C * NR  # total number of data points with higher level of noise
-    NL = NR * len(timevec) * len(concvec) - NH  # total number of data points with
     # lower level of noise
     # Matrix with noise:
     sigMat = np.ones((len(concvec), len(timevec))) / (2 * sigL ** 2)
     sigMat[:C, len(timevec) - T:] = 1 / (2 * sigH ** 2)  # higher noise is in the top right
     # corner (time bigger than 48 hours, concentration lower than 0.1)
-
+    x_all = []
+    for l in range(PopN - 1):
+        x_all.append(X1[l] * f(PMat[l], concvec, timevec))
+    x_all.append((1 - np.sum(X1)) * f(PMat[PopN - 1], concvec, timevec))
     for k in np.arange(NR):
         s = 0
+        M = np.reshape(np.repeat(DATA[k, :, 0], len(timevec)), (len(concvec), len(timevec)))
         for l in range(PopN - 1):
-            X = X1[l] * f(PMat[l], concvec, timevec)
+            X = x_all[l]
             # We need to multiply DATA[k,:,0] (the initial cell count for all
             # concentrations for k-th replicate) by X, element by element
             # cocentation wise, DATA[k,:,0] being the same fot every time point
             # of X, so we form a matrix where DATA[k,:,0] is repeated the same
             # number of times as the number of time points, and than reshaped to
             # correspond to the dimensions of X for element wise multiplication:
-            M = np.reshape(np.repeat(DATA[k, :, 0], len(timevec)), (len(concvec), len(timevec)))
-            s += np.multiply(M, X)  # s is a matrix containing counts summed for
+            s += M*X  # s is a matrix containing counts summed for
             # all subpopulation in a corresponding proportion for all time
             # points and concentrations
 
         # Last subpopulation:
-        X = (1 - sum(X1)) * f(PMat[PopN - 1], concvec, timevec)
-        M = np.reshape(np.repeat(DATA[k, :, 0], len(timevec)), (len(concvec), len(timevec)))
-        s += np.multiply(M, X)
+        X = x_all[-1]
+        s += M*X
 
         # Matrix containing residuals for all time points (except time 0 since
         # in this case the residual is zero by deffinition) and concentrations:
@@ -137,9 +126,8 @@ def objective(PopN, Params, DATA, Conc, Time, NR, ConcT, TimeT, model):
         # Adding noise by multiplying every residual by a corresponding noise
         # from the noise matrix, and calculating the sum for all time points
         # and concentrations:
-        sum_resid += sum(sum(np.multiply(resid ** 2, sigMat)))
-
-    return sum_resid + (NH / 2) * math.log(2*np.pi*sigH**2) + (NL / 2) * math.log(2*np.pi*sigL**2)
+        sum_resid += np.sum((resid ** 2) * sigMat)
+    return sum_resid + (NH / 2) * np.log(2*np.pi*sigH**2) + (NL / 2) * np.log(2*np.pi*sigL**2)
 
 
 # Default bounds setting used in exponential model parameter inference :
@@ -226,17 +214,25 @@ def mixtureID(PopN, DATA, Time, Conc, R, model="expo",
     points = len(Conc) * len(Time) * R
 
     # Initializing Bayesian information criterion:
-    BIC = float("inf")
+    BIC = np.inf
 
     X_FINAL = []
     FVAL = []
 
     # Comparing BIC for all models with a number of populations considered from
     # 1 to PopN in order to find the best fit:
+    timevec = np.sort(Time)[1:]  # time starts from the second value since the
+    # first one is taken from the data
+    concvec = np.sort(Conc)
+    T = np.sum(np.where(timevec >= TimeT, 1, 0))  # number of time points with higher
+    # level of noise
+    C = np.sum(np.where(concvec <= ConcT, 1, 0))  # number of concentrations with higher
+    # level of noise
+    NH = T * C * R  # total number of data points with higher level of noise
+    NL = R * len(timevec) * len(concvec) - NH  # total number of data points with
     for p in np.arange(1, PopN + 1):
-
         # Function that will be optimized:
-        f = lambda x: objective(p, x, DATA, Conc, Time, R, ConcT, TimeT, model)
+        f = lambda x: objective(p, x, DATA, concvec, timevec, R, model, T, C, NH, NL)
 
         # Changing the format of chosen bounds to fit the optimization procedure:
         if p > 1:
@@ -260,14 +256,11 @@ def mixtureID(PopN, DATA, Time, Conc, R, model="expo",
         bnds = tuple(bnds)
 
         # Optimization:
-        fval = float("inf")
+        fval = np.inf
 
         for n in np.arange(num_optim):
             print(f'Number of populations: {p}, opimization index: {n}')
             x0 = [random.random() * (bnds[i][1] - bnds[i][0]) + bnds[i][0] for i in np.arange(len(bnds))]
-            #F = minimize(f, x0, method='TNC', bounds=bnds,
-            #             options={'accuracy': 1e-07, 'eps': 1e-05,
-            #                      'maxiter': 500, 'disp': False, 'ftol': 1e-03})
             F = minimize(f, x0, method='L-BFGS-B', bounds=bnds,
                          options={'disp': False, 'ftol': 1e-12})
             xx = F.__getitem__('x')
@@ -278,7 +271,7 @@ def mixtureID(PopN, DATA, Time, Conc, R, model="expo",
                 x_final = xx
         X_FINAL.append(x_final)
         FVAL.append(fval)
-        BIC_temp = len(bnds) * math.log(points) + 2 * fval
+        BIC_temp = len(bnds) * np.log(points) + 2 * fval
 
         # Choosing the model with the smallest BIC:
         if BIC_temp < BIC:
@@ -291,7 +284,7 @@ def mixtureID(PopN, DATA, Time, Conc, R, model="expo",
     print("Estimated number of cell populations: ", pfinal)
     print("Minimal log-likelihood value found: ", fval)
     MixP = list(x_final[0:(pfinal - 1)])
-    MixP.append(1 - sum(MixP))
+    MixP.append(1 - np.sum(MixP))
     print("Mixture parameter(s): ", 1 if pfinal == 1 else MixP)
     if model == "expo":
         for i in range(pfinal):
@@ -310,7 +303,7 @@ def mixtureID(PopN, DATA, Time, Conc, R, model="expo",
         plt.semilogx(Conc, [rateexpo(param, x) for x in sorted(Conc)], '-*', linewidth=3,
                  label="Subpopulation #%s" % (i + 1))
 
-    plt.xlabel('Log Drug Concentration')
+    plt.xlabel('Drug Concentration')
     plt.ylabel('Growth rate')
     plt.title('Estimated growth rates ')
     plt.legend()
