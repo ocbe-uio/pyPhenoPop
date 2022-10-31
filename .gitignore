@@ -1,0 +1,47 @@
+*.py[cod]
+*.npy
+
+tmp/
+#temporary files
+*~
+
+# C extensions
+*.so
+*.build
+
+#matlab
+*.mat
+
+#pycharm
+.idea/
+
+
+
+# Cython created C files
+*.c
+*.cpp
+
+# redis
+dump.rdb
+
+# IPython checkpoints
+.ipynb_checkpoints/
+
+# Packages
+*.egg
+*.egg-info
+dist
+build
+eggs
+parts
+bin
+var
+sdist
+develop-eggs
+.installed.cfg
+lib
+lib64
+__pycache__
+.cache
+
+

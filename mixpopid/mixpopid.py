@@ -4,6 +4,7 @@ import numpy as np
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 
+
 def rateexpo(p, x):
     """
     A function calculating a growth rate of a certain cell population with 
@@ -15,8 +16,9 @@ def rateexpo(p, x):
         * x: drug concentration vector
         
     """
-    
-    return (p[0]+np.log(p[1]+ (1-p[1])/(1+(x/p[2])**p[3])))
+
+    return p[0] + np.log(p[1] + (1 - p[1]) / (1 + (x / p[2]) ** p[3]))
+
 
 def popexpo(params, C, T):
     """
@@ -30,14 +32,13 @@ def popexpo(params, C, T):
         * T: time vector
         
     """
-    #Reshaping the time points and the rates vectors to perform a 
-    #multiplication:
-    T_=np.reshape(T,(1,len(T)))
-    rates=np.reshape(rateexpo(params, C),(len(C),1))
+    # Reshaping the time points and the rates vectors to perform a
+    # multiplication:
+    T_ = np.reshape(T, (1, len(T)))
+    rates = np.reshape(rateexpo(params, C), (len(C), 1))
     # Returns a matrix with population counts where lines correspond to 
-    #concentrations and columns to time points:
-    return np.exp(rates@T_)
-    
+    # concentrations and columns to time points:
+    return np.exp(rates @ T_)
 
 
 def objective(PopN, Params, DATA, Conc, Time, NR, ConcT, TimeT, model):
@@ -63,94 +64,96 @@ def objective(PopN, Params, DATA, Conc, Time, NR, ConcT, TimeT, model):
         cell population number.
     
     """
-    
-    #Creating a mixture parameter vector:
-    if PopN>1:
-        X1=Params[0:PopN-1]
-    else:
-        X1=[0,]
 
-    #Creating a model specific parameter vector based on the chosen model:
-    p=Params[PopN-1:-2]
-    if model=="expo":
-        if len(p)%4==0:
-            PMat=[[p[4*j+i] for i in np.arange(4)] for j in np.arange(PopN)]
+    # Creating a mixture parameter vector:
+    if PopN > 1:
+        X1 = Params[0:PopN - 1]
+    else:
+        X1 = [0, ]
+
+    # Creating a model specific parameter vector based on the chosen model:
+    p = Params[PopN - 1:-2]
+    if model == "expo":
+        if len(p) % 4 == 0:
+            PMat = [[p[4 * j + i] for i in np.arange(4)] for j in np.arange(PopN)]
         else:
             print("Error: parameter vector not suited for the chosen model")
             return -1
-        #Choosing a function calculating cell population number based on the
-        #chosen model:
-        f=popexpo
-    
-    #Higher variance level:
-    sigH=Params[5*PopN-1]
-    
-    #Lower variance level:
-    sigL=Params[5*PopN]
-    
+        # Choosing a function calculating cell population number based on the
+        # chosen model:
+        f = popexpo
+
+    # Higher variance level:
+    sigH = Params[5 * PopN - 1]
+
+    # Lower variance level:
+    sigL = Params[5 * PopN]
+
     sum_resid = 0
-    
-    #The vectors containing time points and concentration levels should be 
-    #sorted in order to easily create a matrix with two levels of noise:
-    timevec = np.sort(Time)[1:] #time starts from the second value since the 
-                                #first one is taken from the data
+
+    # The vectors containing time points and concentration levels should be
+    # sorted in order to easily create a matrix with two levels of noise:
+    timevec = np.sort(Time)[1:]  # time starts from the second value since the
+    # first one is taken from the data
     concvec = np.sort(Conc)
-    
-    #Calculation of noise:
-    T = sum(np.where(timevec>=TimeT,1,0)) #number of time points with higher
-                                        #level of noise
-    C = sum(np.where(concvec<=ConcT,1,0)) #number of concentrations with higher
-                                        #level of noise
-    NH  = T*C*NR #total number of data points with higher level of noise
-    NL = NR*len(timevec)*len(concvec)-NH #total number of data points with
-                                        #lower level of noise
-    #Matrix with noise:
-    sigMat = np.ones((len(concvec), len(timevec)))/(2*sigL**2)
-    sigMat[:C,len(timevec)-T:] =1/(2*sigH**2) #higher noise is in the top right
-    #corner (time bigger than 48 hours, concentration lower than 0.1)
-    
+
+    # Calculation of noise:
+    T = sum(np.where(timevec >= TimeT, 1, 0))  # number of time points with higher
+    # level of noise
+    C = sum(np.where(concvec <= ConcT, 1, 0))  # number of concentrations with higher
+    # level of noise
+    NH = T * C * NR  # total number of data points with higher level of noise
+    NL = NR * len(timevec) * len(concvec) - NH  # total number of data points with
+    # lower level of noise
+    # Matrix with noise:
+    sigMat = np.ones((len(concvec), len(timevec))) / (2 * sigL ** 2)
+    sigMat[:C, len(timevec) - T:] = 1 / (2 * sigH ** 2)  # higher noise is in the top right
+    # corner (time bigger than 48 hours, concentration lower than 0.1)
+
     for k in np.arange(NR):
-        s=0
-        for l in range(PopN-1):
-            X=X1[l]*f(PMat[l],concvec,timevec)
-            #We need to multiply DATA[k,:,0] (the initial cell count for all
-            #concentrations for k-th replicate) by X, element by element 
-            #cocentation wise, DATA[k,:,0] being the same fot every time point 
-            #of X, so we form a matrix where DATA[k,:,0] is repeated the same
-            #number of times as the number of time points, and than reshaped to
-            #correspond to the dimensions of X for element wise multiplication:
-            M=np.reshape(np.repeat(DATA[k,:,0],len(timevec)),(len(concvec),len(timevec)))
-            s+=np.multiply(M,X) #s is a matrix containing counts summed for 
-            #all subpopulation in a corresponding proportion for all time
-            #points and concentrations
-          
-        #Last subpopulation:
-        X=(1-sum(X1))*f(PMat[PopN-1],concvec,timevec)
-        M=np.reshape(np.repeat(DATA[k,:,0],len(timevec)),(len(concvec),len(timevec)))
-        s+=np.multiply(M,X)
-        
-        #Matrix containing residuals for all time points (except time 0 since 
-        #in this case the residual is zero by deffinition) and concentrations:
-        resid = DATA[k,:,1:] - s
-        
-        #Adding noise by multiplying every residual by a corresponding noise
-        #from the noise matrix, and calculating the sum for all time points
-        #and concentrations:
-        sum_resid+=sum(sum(np.multiply(resid**2,sigMat)))
-    
-    return sum_resid+NH*math.log(sigH)+NL*math.log(sigL)
+        s = 0
+        for l in range(PopN - 1):
+            X = X1[l] * f(PMat[l], concvec, timevec)
+            # We need to multiply DATA[k,:,0] (the initial cell count for all
+            # concentrations for k-th replicate) by X, element by element
+            # cocentation wise, DATA[k,:,0] being the same fot every time point
+            # of X, so we form a matrix where DATA[k,:,0] is repeated the same
+            # number of times as the number of time points, and than reshaped to
+            # correspond to the dimensions of X for element wise multiplication:
+            M = np.reshape(np.repeat(DATA[k, :, 0], len(timevec)), (len(concvec), len(timevec)))
+            s += np.multiply(M, X)  # s is a matrix containing counts summed for
+            # all subpopulation in a corresponding proportion for all time
+            # points and concentrations
+
+        # Last subpopulation:
+        X = (1 - sum(X1)) * f(PMat[PopN - 1], concvec, timevec)
+        M = np.reshape(np.repeat(DATA[k, :, 0], len(timevec)), (len(concvec), len(timevec)))
+        s += np.multiply(M, X)
+
+        # Matrix containing residuals for all time points (except time 0 since
+        # in this case the residual is zero by deffinition) and concentrations:
+        resid = DATA[k, :, 1:] - s
+
+        # Adding noise by multiplying every residual by a corresponding noise
+        # from the noise matrix, and calculating the sum for all time points
+        # and concentrations:
+        sum_resid += sum(sum(np.multiply(resid ** 2, sigMat)))
+
+    return sum_resid + (NH / 2) * math.log(2*np.pi*sigH**2) + (NL / 2) * math.log(2*np.pi*sigL**2)
+
 
 # Default bounds setting used in exponential model parameter inference :
-bounds_expo = {'alpha': (1e-05, 0.05), 'b': (0.5, 1.0), 'E': (1e-05, 10),
-               'n': (1e-05, 10)}
+#bounds_expo = {'alpha': (1e-10, 0.05), 'b': (0.5, 1.0), 'E': (1e-05, 100000),
+#               'n': (1e-05, 10)}
+#bounds_expo = {'alpha': (0.0, 0.1), 'b': (0.27, 1.0), 'E': (1e-06, 0.5),
+#               'n': (0.01, 10)}
+bounds_expo = {'alpha': (0.0, 0.1), 'b': (0.0, 1.0), 'E': (1e-06, 15),
+               'n': (0.01, 10)}
 
-        
-    
 
-
-def mixtureID(PopN, DATA, Time, Conc, R, model = "expo", 
-              bounds_model = bounds_expo, bounds_sigmaH = (1e-05, 1000.0),
-              bounds_sigmaL = (1e-05, 500.0), num_optim = 200):
+def mixtureID(PopN, DATA, Time, Conc, R, model="expo",
+              bounds_model=bounds_expo, bounds_sigmaH=(1e-05, 10000.0),
+              bounds_sigmaL=(1e-05, 5000.0), num_optim=200):
     """
     This is a function that serves to determine the number of cell 
     subpopulations found in a given mixture with a maximum of PopN, and in what
@@ -214,35 +217,34 @@ def mixtureID(PopN, DATA, Time, Conc, R, model = "expo",
         
     """
 
-
-    #Fixed thresholds for concentration and time in order to choose either
-    #higher or lower variance level (sigmaH and sigmaL):
+    # Fixed thresholds for concentration and time in order to choose either
+    # higher or lower variance level (sigmaH and sigmaL):
     ConcT = 0.1
     TimeT = 48
 
-    #Number of data points:
-    points = len(Conc)*len(Time)*R
+    # Number of data points:
+    points = len(Conc) * len(Time) * R
 
-    #Initializing Bayesian information criterion:
+    # Initializing Bayesian information criterion:
     BIC = float("inf")
 
     X_FINAL = []
     FVAL = []
 
-    #Comparing BIC for all models with a number of populations considered from 
+    # Comparing BIC for all models with a number of populations considered from
     # 1 to PopN in order to find the best fit:
-    for p in np.arange(1,PopN+1):
+    for p in np.arange(1, PopN + 1):
 
-        #Function that will be optimized:
-        f = lambda x: objective(p,x,DATA,Conc,Time,R,ConcT,TimeT,model)
+        # Function that will be optimized:
+        f = lambda x: objective(p, x, DATA, Conc, Time, R, ConcT, TimeT, model)
 
-        #Changing the format of chosen bounds to fit the optimization procedure:
-        if p>1:
-            bnds = [(1e-05, 0.5) for i in np.arange(p-1)]
+        # Changing the format of chosen bounds to fit the optimization procedure:
+        if p > 1:
+            bnds = [(0.0, 0.5) for i in np.arange(p - 1)]
         else:
             bnds = []
-        if model=="expo":
-            if bounds_model.keys()==bounds_expo.keys():
+        if model == "expo":
+            if bounds_model.keys() == bounds_expo.keys():
                 for i in np.arange(p):
                     bnds.append(bounds_model['alpha'])
                     bnds.append(bounds_model['b'])
@@ -253,61 +255,61 @@ def mixtureID(PopN, DATA, Time, Conc, R, model = "expo",
                 print("Consider updating the bounds or choosing a different model.")
                 return -1
 
-
         bnds.append(bounds_sigmaH)
         bnds.append(bounds_sigmaL)
-        bnds=tuple(bnds)
+        bnds = tuple(bnds)
 
-        
-        #Optimization:
-        fval=float("inf")
+        # Optimization:
+        fval = float("inf")
 
-        for n in np.arange(num_optim) :
-            x0=[random.random()*(bnds[i][1]-bnds[i][0]) + bnds[i][0] for i in np.arange(len(bnds))]
-            F = minimize(f, x0, method='TNC', bounds=bnds, 
-                         options={'accuracy':1e-07, 'eps': 1e-05, 
-                                  'maxiter': 500, 'disp': True, 'ftol': 1e-03})
+        for n in np.arange(num_optim):
+            print(f'Number of populations: {p}, opimization index: {n}')
+            x0 = [random.random() * (bnds[i][1] - bnds[i][0]) + bnds[i][0] for i in np.arange(len(bnds))]
+            #F = minimize(f, x0, method='TNC', bounds=bnds,
+            #             options={'accuracy': 1e-07, 'eps': 1e-05,
+            #                      'maxiter': 500, 'disp': False, 'ftol': 1e-03})
+            F = minimize(f, x0, method='L-BFGS-B', bounds=bnds,
+                         options={'disp': False, 'ftol': 1e-12})
+            xx = F.__getitem__('x')
+            ff = F.__getitem__('fun')
 
-            xx=F.__getitem__('x')
-            ff=F.__getitem__('fun')
-
-            if ff<fval:
+            if ff < fval:
                 fval = ff
                 x_final = xx
         X_FINAL.append(x_final)
         FVAL.append(fval)
-        BIC_temp=len(bnds)*math.log(points)+2*fval
+        BIC_temp = len(bnds) * math.log(points) + 2 * fval
 
-        #Choosing the model with the smallest BIC:
-        if BIC_temp<BIC:
+        # Choosing the model with the smallest BIC:
+        if BIC_temp < BIC:
             BIC = BIC_temp
-            pfinal=p
+            pfinal = p
 
-
-    #Results:
-    x_final = X_FINAL[pfinal-1]
-    fval = FVAL[pfinal-1]
+    # Results:
+    x_final = X_FINAL[pfinal - 1]
+    fval = FVAL[pfinal - 1]
     print("Estimated number of cell populations: ", pfinal)
     print("Minimal log-likelihood value found: ", fval)
-    MixP=list(x_final[0:(pfinal-1)])
-    MixP.append(1-sum(MixP))
-    print("Mixture parameter(s): ", 1 if pfinal==1 else MixP)
-    if model=="expo":
+    MixP = list(x_final[0:(pfinal - 1)])
+    MixP.append(1 - sum(MixP))
+    print("Mixture parameter(s): ", 1 if pfinal == 1 else MixP)
+    if model == "expo":
         for i in range(pfinal):
-            print("Model parameters for subpopulation #%s:" %(i+1))
-            print("alpha : ", x_final[pfinal-1+len(bounds_model)*i])
-            print("b : ", x_final[pfinal-1+len(bounds_model)*i+1])
-            print("E : ", x_final[pfinal-1+len(bounds_model)*i+2])
-            print("n : ", x_final[pfinal-1+len(bounds_model)*i+3])
-            
-    
-    #Visualization:
-    plt.figure(figsize=(10,8))
+            print("Model parameters for subpopulation #%s:" % (i + 1))
+            print("alpha : ", x_final[pfinal - 1 + len(bounds_model) * i])
+            print("b : ", x_final[pfinal - 1 + len(bounds_model) * i + 1])
+            print("E : ", x_final[pfinal - 1 + len(bounds_model) * i + 2])
+            print("n : ", x_final[pfinal - 1 + len(bounds_model) * i + 3])
+        print("Sigma high:", x_final[-2])
+        print("Sigma low:", x_final[-1])
+
+    # Visualization:
+    plt.figure(figsize=(10, 8))
     for i in range(pfinal):
-        param=x_final[4*i+pfinal-1:4*i+pfinal+3]
-        plt.plot(range(len(Conc)),[rateexpo(param,x) for x in sorted(Conc)], '-*', linewidth=3, 
-                           label="Subpopulation #%s" %(i+1))
-    
+        param = x_final[4 * i + pfinal - 1:4 * i + pfinal + 3]
+        plt.semilogx(Conc, [rateexpo(param, x) for x in sorted(Conc)], '-*', linewidth=3,
+                 label="Subpopulation #%s" % (i + 1))
+
     plt.xlabel('Log Drug Concentration')
     plt.ylabel('Growth rate')
     plt.title('Estimated growth rates ')
