@@ -2,9 +2,11 @@ import numpy as np
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 from scipy.optimize import brentq
+from typing import Union, Dict, Tuple
 
 
-def rate_expo(parameters, concentrations):
+def rate_expo(parameters: list,
+              concentrations: np.ndarray):
     """
     A function calculating a growth rate of a certain cell population with 
     parameters p exposed to a certain drug with given concentrations according
@@ -20,7 +22,9 @@ def rate_expo(parameters, concentrations):
         parameters[1] + (1 - parameters[1]) / (1 + (concentrations / parameters[2]) ** parameters[3]))
 
 
-def pop_expo(parameters, concentrations, timepoints):
+def pop_expo(parameters: list,
+             concentrations: np.ndarray,
+             timepoints: np.ndarray):
     """
     A function calculating a certain cell population count using a function
     'rate' at given time points according to the exponential cell population 
@@ -41,8 +45,17 @@ def pop_expo(parameters, concentrations, timepoints):
     return np.exp(rates @ timepoints_rshpe)
 
 
-def neg_log_likelihood(max_subpop, parameters, measurements, concvec, timevec, num_replicates, model,
-                       num_timepoints_high, num_conc_high_noise, num_noise_high, num_noise_low):
+def neg_log_likelihood(max_subpop: int,
+                       parameters: np.ndarray,
+                       measurements: np.ndarray,
+                       concvec: np.ndarray,
+                       timevec: np.ndarry,
+                       num_replicates: int,
+                       model: str,
+                       num_timepoints_high: np.ndarray,
+                       num_conc_high_noise: np.ndarray,
+                       num_noise_high: int,
+                       num_noise_low: int):
     """
     This function calculates the negative value of log-likelihood for a given
     model. Function's minimum is the optimal parameter estimate. 
@@ -97,8 +110,8 @@ def neg_log_likelihood(max_subpop, parameters, measurements, concvec, timevec, n
     sum_resid = 0
 
     # Matrix with noise:
-    sigMat = np.ones((len(concvec), len(timevec))) / (2 * sigma_low ** 2)
-    sigMat[:num_conc_high_noise, len(timevec) - num_timepoints_high:] = 1 / (
+    sigma_matrix = np.ones((len(concvec), len(timevec))) / (2 * sigma_low ** 2)
+    sigma_matrix[:num_conc_high_noise, len(timevec) - num_timepoints_high:] = 1 / (
             2 * sigma_high ** 2)  # higher noise is in the top right
     # corner (time bigger than 48 hours, concentration lower than 0.1)
     x_all = []
@@ -131,14 +144,22 @@ def neg_log_likelihood(max_subpop, parameters, measurements, concvec, timevec, n
         # Adding noise by multiplying every residual by a corresponding noise
         # from the noise matrix, and calculating the sum for all time points
         # and concentrations:
-        sum_resid += np.sum((resid ** 2) * sigMat)
+        sum_resid += np.sum((resid ** 2) * sigma_matrix)
     return sum_resid + (num_noise_high / 2) * np.log(2 * np.pi * sigma_high ** 2) + (num_noise_low / 2) * np.log(
         2 * np.pi * sigma_low ** 2)
 
 
-def mixtureID(max_subpop, measurements, timepoints, concentrations, num_replicates, model="expo",
-              bounds_model=None, bounds_sigma_high=(1e-05, 10000.0),
-              bounds_sigma_low=(1e-05, 5000.0), optimizer_options=None, num_optim=200):
+def mixtureID(max_subpop: int,
+              measurements: np.ndarray,
+              timepoints: Union[list, np.ndarray],
+              concentrations: Union[list, np.ndarray],
+              num_replicates: int,
+              model: str = "expo",
+              bounds_model: Dict = None,
+              bounds_sigma_high: Tuple = (1e-05, 10000.0),
+              bounds_sigma_low: Tuple = (1e-05, 5000.0),
+              optimizer_options: Dict = None,
+              num_optim: int = 200):
     """
     This is a function that serves to determine the number of cell 
     subpopulations found in a given mixture with a maximum of PopN, and in what
@@ -272,9 +293,10 @@ def mixtureID(max_subpop, measurements, timepoints, concentrations, num_replicat
                                   options=optimizer_options['options'])
                 results[f'{num_subpop}_subpopulations']['fval'].append(result['fun'])
                 results[f'{num_subpop}_subpopulations']['parameters'].append(result['x'])
-            except:
+            except Exception as err:
                 print(
                     f'optimization failed for {num_subpop} subpopulations and start {n}, which initial parameters {x0}.'
+                    f'Error message: {err}'
                 )
         final_idx = np.argmin(results[f'{num_subpop}_subpopulations']['fval'])
         fval = results[f'{num_subpop}_subpopulations']['fval'][final_idx]
@@ -299,9 +321,9 @@ def mixtureID(max_subpop, measurements, timepoints, concentrations, num_replicat
     fval = fval_all[final_pop_idx - 1]
     print("Estimated number of cell populations: ", final_pop_idx)
     print("Minimal negative log-likelihood value found: ", fval)
-    MixP = list(x_final[0:(final_pop_idx - 1)])
-    MixP.append(1 - np.sum(MixP))
-    print("Mixture parameter(s): ", 1 if final_pop_idx == 1 else MixP)
+    mixture_parameters = list(x_final[0:(final_pop_idx - 1)])
+    mixture_parameters.append(1 - np.sum(mixture_parameters))
+    print("Mixture parameter(s): ", 1 if final_pop_idx == 1 else mixture_parameters)
     if model == "expo":
         for i in range(final_pop_idx):
             print("Model parameters for subpopulation #%s:" % (i + 1))
@@ -317,7 +339,9 @@ def mixtureID(max_subpop, measurements, timepoints, concentrations, num_replicat
     return results
 
 
-def get_gr50(parameters, concentrations, max_subpop):
+def get_gr50(parameters: list,
+             concentrations: np.ndarray,
+             max_subpop: int):
     p = parameters[max_subpop - 1:-2]
     parameters_per_subpop = [[p[4 * j + i] for i in np.arange(4)] for j in np.arange(max_subpop)]
 
@@ -340,7 +364,8 @@ def get_gr50(parameters, concentrations, max_subpop):
     return gr50_all
 
 
-def plot_growth_curves(results, concentrations):
+def plot_growth_curves(results: Dict,
+                       concentrations: np.ndarray):
     final_pop_idx = results['summary']['estimated_num_populations']
     x_final = results['summary']['final_parameters']
     ax = plt.figure(figsize=(10, 8))
@@ -356,14 +381,14 @@ def plot_growth_curves(results, concentrations):
     return ax
 
 
-def plot_elbow(results):
+def plot_elbow(results: Dict):
     final_nllhs = [np.min(results[f'{idx}_subpopulations']['fval']) for idx in range(1, len(results))]
     plt.plot(range(1, len(results)), final_nllhs, 'o-')
     plt.ylabel('Negative log-likelihood')
     plt.xlabel('Number of inferred populations')
 
 
-def plot_bic(results):
+def plot_bic(results: Dict):
     final_bic = [results[f'{idx}_subpopulations']['BIC'] for idx in range(1, len(results))]
     plt.plot(range(1, len(results)), final_bic, 'o-')
     plt.ylabel('Negative log-likelihood')
