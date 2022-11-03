@@ -62,7 +62,7 @@ def neg_log_likelihood(max_subpop: int,
     model. Function's minimum is the optimal parameter estimate. 
     
     Arguments:
-        * max_subpop: Number of cell lines considered
+        * max_subpop: maximum number of cell subpopulations considered
         * parameters: Model parameters; for every model the first PopN-1 elements of
         Params must be mixture parameters, the last two are higher and lower 
         variance levels. Higher variance appears at concentration levels
@@ -252,7 +252,7 @@ def mixtureID(max_subpop: int,
     num_noise_low = num_replicates * len(sorted_timepoints) * len(sorted_concentratiosn) - num_noise_high
     results = {}
     for num_subpop in np.arange(1, max_subpop + 1):
-        print(f'Optimizing for {num_subpop} subpopulations.')
+        print(f'Optimizing for {num_subpop} subpopulations')
         results[f'{num_subpop}_subpopulations'] = {'fval': [], 'parameters': [], 'BIC': np.inf}
         obj = lambda x: neg_log_likelihood(num_subpop,
                                            x,
@@ -266,27 +266,8 @@ def mixtureID(max_subpop: int,
                                            num_noise_high,
                                            num_noise_low)
 
-        # Changing the format of chosen bounds to fit the optimization procedure:
-        if num_subpop > 1:
-            bnds = [(0.0, 0.5) for _ in np.arange(num_subpop - 1)]
-        else:
-            bnds = []
-        if model == "expo":
-            for _ in np.arange(num_subpop):
-                bnds.append(bounds_model['alpha'])
-                bnds.append(bounds_model['b'])
-                bnds.append(bounds_model['E'])
-                bnds.append(bounds_model['n'])
-        else:
-            raise NotImplementedError
+        bnds, lb, ub = get_optimization_bounds(num_subpop, bounds_model, bounds_sigma_low, bounds_sigma_high)
 
-        bnds.append(bounds_sigma_high)
-        bnds.append(bounds_sigma_low)
-        bnds = tuple(bnds)
-
-        # Optimization:
-        lb = [bnds[i][0] for i in range(len(bnds))]
-        ub = [bnds[i][1] for i in range(len(bnds))]
         for n in tqdm(np.arange(num_optim)):
             x0 = np.random.uniform(lb, ub)
             try:
@@ -317,7 +298,17 @@ def mixtureID(max_subpop: int,
                           'final_neg_log_likelihood': fval_all[final_pop_idx - 1],
                           'best_optimization_idx': np.nanargmin(results[f'{final_pop_idx}_subpopulations']['fval']),
                           'final_parameters': x_final_all[final_pop_idx - 1]}
-    # Results:
+
+    print_results(x_final_all, fval_all, final_pop_idx, bounds_model, model)
+
+    return results
+
+
+def print_results(x_final_all: list,
+                  fval_all: list,
+                  final_pop_idx: int,
+                  bounds_model: Dict,
+                  model: str):
     x_final = x_final_all[final_pop_idx - 1]
     fval = fval_all[final_pop_idx - 1]
     print("Estimated number of cell populations: ", final_pop_idx)
@@ -337,7 +328,31 @@ def mixtureID(max_subpop: int,
     else:
         raise NotImplementedError
 
-    return results
+
+def get_optimization_bounds(num_subpop: int,
+                            bounds_model: Dict,
+                            bounds_sigma_low: Tuple,
+                            bounds_sigma_high: Tuple):
+    # Changing the format of chosen bounds to fit the optimization procedure:
+    if num_subpop > 1:
+        bnds = [(0.0, 0.5) for _ in np.arange(num_subpop - 1)]
+    else:
+        bnds = []
+
+    for _ in np.arange(num_subpop):
+        bnds.append(bounds_model['alpha'])
+        bnds.append(bounds_model['b'])
+        bnds.append(bounds_model['E'])
+        bnds.append(bounds_model['n'])
+
+    bnds.append(bounds_sigma_high)
+    bnds.append(bounds_sigma_low)
+    bnds = tuple(bnds)
+
+    # Optimization:
+    lb = [bnds[i][0] for i in range(len(bnds))]
+    ub = [bnds[i][1] for i in range(len(bnds))]
+    return bnds, lb, ub
 
 
 def get_gr50(parameters: list,
