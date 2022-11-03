@@ -252,6 +252,7 @@ def mixtureID(max_subpop: int,
     num_noise_low = num_replicates * len(sorted_timepoints) * len(sorted_concentratiosn) - num_noise_high
     results = {}
     for num_subpop in np.arange(1, max_subpop + 1):
+        print(f'Optimizing for {num_subpop} subpopulations.')
         results[f'{num_subpop}_subpopulations'] = {'fval': [], 'parameters': [], 'BIC': np.inf}
         obj = lambda x: neg_log_likelihood(num_subpop,
                                            x,
@@ -287,7 +288,6 @@ def mixtureID(max_subpop: int,
         lb = [bnds[i][0] for i in range(len(bnds))]
         ub = [bnds[i][1] for i in range(len(bnds))]
         for n in tqdm(np.arange(num_optim)):
-            #print(f'Number of populations: {num_subpop}, opimization index: {n}')
             x0 = np.random.uniform(lb, ub)
             try:
                 result = minimize(obj, x0, method=optimizer_options['method'], bounds=bnds,
