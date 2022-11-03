@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import brentq
 from typing import Union, Dict, Tuple
 from tqdm import tqdm
+import pandas as pd
 
 
 def rate_expo(parameters: list,
@@ -151,7 +152,7 @@ def neg_log_likelihood(max_subpop: int,
 
 
 def mixtureID(max_subpop: int,
-              measurements: np.ndarray,
+              data_file: str,
               timepoints: Union[list, np.ndarray],
               concentrations: Union[list, np.ndarray],
               num_replicates: int,
@@ -201,9 +202,7 @@ def mixtureID(max_subpop: int,
     
     Arguments:
         * max_subpop: maximum number of cell subpopulations considered
-        * measurements: cell count at each independent variable condition. DATA should
-        be structured as follows: DATA[k][j][i] ia a cell count for the k-th
-        replicate at the j-th concentration at the i-th time point
+        * data_file: Name of the file containing the measured cell counts.
         * timepoints: list of time points measured in hours
         * concentrations: list of concentrations considered  measured in micromoles
         * num_replicates: number of replicates
@@ -228,12 +227,20 @@ def mixtureID(max_subpop: int,
 
     if optimizer_options is None:
         optimizer_options = {'method': 'L-BFGS-B', 'options': {'disp': False, 'ftol': 1e-12}}
+
+    num_timepoints = len(timepoints)
+    num_concentrations = len(concentrations)
+
+    measurements = np.array(pd.read_csv(data_file, header=None))
+    measurements = measurements.reshape(num_timepoints, num_replicates, num_concentrations)
+    measurements = measurements.transpose(1, 2, 0)
+
     # Fixed thresholds for concentration and time in order to choose either
     # higher or lower variance level (sigmaH and sigmaL):
     conc_threshold = 0.1
     time_threshold = 48
 
-    num_datapoints = len(concentrations) * len(timepoints) * num_replicates
+    num_datapoints = num_concentrations * num_timepoints * num_replicates
 
     # Initializing Bayesian information criterion:
     bic = np.inf
