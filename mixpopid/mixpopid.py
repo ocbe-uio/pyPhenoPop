@@ -3,6 +3,7 @@ from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 from scipy.optimize import brentq
 from typing import Union, Dict, Tuple
+from tqdm import tqdm
 
 
 def rate_expo(parameters: list,
@@ -49,7 +50,7 @@ def neg_log_likelihood(max_subpop: int,
                        parameters: np.ndarray,
                        measurements: np.ndarray,
                        concvec: np.ndarray,
-                       timevec: np.ndarry,
+                       timevec: np.ndarray,
                        num_replicates: int,
                        model: str,
                        num_timepoints_high: np.ndarray,
@@ -285,8 +286,8 @@ def mixtureID(max_subpop: int,
         # Optimization:
         lb = [bnds[i][0] for i in range(len(bnds))]
         ub = [bnds[i][1] for i in range(len(bnds))]
-        for n in np.arange(num_optim):
-            print(f'Number of populations: {num_subpop}, opimization index: {n}')
+        for n in tqdm(np.arange(num_optim)):
+            #print(f'Number of populations: {num_subpop}, opimization index: {n}')
             x0 = np.random.uniform(lb, ub)
             try:
                 result = minimize(obj, x0, method=optimizer_options['method'], bounds=bnds,
