@@ -4,18 +4,15 @@ from setuptools import setup, find_packages
 
 # Package meta-data.
 
-NAME = 'mixpopid'
+NAME = 'pyPhenoPop'
 DESCRIPTION = 'Mixed leukemic tumor cell population identification '
-URL = 'https://github.com/Apollinaria45/mixpopid'
-EMAIL = 'apolinaria10@mail.ru'
-AUTHOR = 'Polina Arsenteva'
+URL = 'https://github.uio.no/leonargs/pyPhenoPop'
+EMAIL = 'leonargs@uio.no'
+AUTHOR = 'Leonard Schmiester'
 REQUIRES_PYTHON = '>=3.5.0'
 VERSION = '0.1.7'
 
-REQUIRED = ['scipy', 'matplotlib','numpy']
-
-
-
+REQUIRED = ['scipy', 'matplotlib', 'numpy', 'pandas', 'tqdm']
 
 
 here = os.path.abspath(os.path.dirname(__file__))

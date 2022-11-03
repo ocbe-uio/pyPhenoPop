@@ -151,17 +151,17 @@ def neg_log_likelihood(max_subpop: int,
         2 * np.pi * sigma_low ** 2)
 
 
-def mixtureID(max_subpop: int,
-              data_file: str,
-              timepoints: Union[list, np.ndarray],
-              concentrations: Union[list, np.ndarray],
-              num_replicates: int,
-              model: str = "expo",
-              bounds_model: Dict = None,
-              bounds_sigma_high: Tuple = (1e-05, 10000.0),
-              bounds_sigma_low: Tuple = (1e-05, 5000.0),
-              optimizer_options: Dict = None,
-              num_optim: int = 200):
+def mixture_id(max_subpop: int,
+               data_file: str,
+               timepoints: Union[list, np.ndarray],
+               concentrations: Union[list, np.ndarray],
+               num_replicates: int,
+               model: str = "expo",
+               bounds_model: Dict = None,
+               bounds_sigma_high: Tuple = (1e-05, 10000.0),
+               bounds_sigma_low: Tuple = (1e-05, 5000.0),
+               optimizer_options: Dict = None,
+               num_optim: int = 200):
     """
     This is a function that serves to determine the number of cell 
     subpopulations found in a given mixture with a maximum of PopN, and in what
@@ -232,7 +232,7 @@ def mixtureID(max_subpop: int,
     num_concentrations = len(concentrations)
 
     measurements = np.array(pd.read_csv(data_file, header=None))
-    measurements = measurements.reshape(num_timepoints, num_replicates, num_concentrations)
+    measurements = measurements.reshape((num_timepoints, num_replicates, num_concentrations))
     measurements = measurements.transpose(1, 2, 0)
 
     # Fixed thresholds for concentration and time in order to choose either
@@ -252,26 +252,28 @@ def mixtureID(max_subpop: int,
     # 1 to PopN in order to find the best fit:
     sorted_timepoints = np.sort(timepoints)[1:]  # time starts from the second value since the
     # first one is taken from the data
-    sorted_concentratiosn = np.sort(concentrations)
+    sorted_concentrations = np.sort(concentrations)
     num_timepoints_high = np.sum(np.where(sorted_timepoints >= time_threshold, 1, 0))
-    num_conc_high_noise = np.sum(np.where(sorted_concentratiosn <= conc_threshold, 1, 0))
+    num_conc_high_noise = np.sum(np.where(sorted_concentrations <= conc_threshold, 1, 0))
     num_noise_high = num_timepoints_high * num_conc_high_noise * num_replicates
-    num_noise_low = num_replicates * len(sorted_timepoints) * len(sorted_concentratiosn) - num_noise_high
+    num_noise_low = num_replicates * len(sorted_timepoints) * num_concentrations - num_noise_high
     results = {}
     for num_subpop in np.arange(1, max_subpop + 1):
         print(f'Optimizing for {num_subpop} subpopulations')
         results[f'{num_subpop}_subpopulations'] = {'fval': [], 'parameters': [], 'BIC': np.inf}
-        obj = lambda x: neg_log_likelihood(num_subpop,
-                                           x,
-                                           measurements,
-                                           sorted_concentratiosn,
-                                           sorted_timepoints,
-                                           num_replicates,
-                                           model,
-                                           num_timepoints_high,
-                                           num_conc_high_noise,
-                                           num_noise_high,
-                                           num_noise_low)
+
+        def obj(x):
+            return neg_log_likelihood(num_subpop,
+                                      x,
+                                      measurements,
+                                      sorted_concentrations,
+                                      sorted_timepoints,
+                                      num_replicates,
+                                      model,
+                                      num_timepoints_high,
+                                      num_conc_high_noise,
+                                      num_noise_high,
+                                      num_noise_low)
 
         bnds, lb, ub = get_optimization_bounds(num_subpop, bounds_model, bounds_sigma_low, bounds_sigma_high)
 
@@ -356,7 +358,6 @@ def get_optimization_bounds(num_subpop: int,
     bnds.append(bounds_sigma_low)
     bnds = tuple(bnds)
 
-    # Optimization:
     lb = [bnds[i][0] for i in range(len(bnds))]
     ub = [bnds[i][1] for i in range(len(bnds))]
     return bnds, lb, ub
@@ -381,7 +382,8 @@ def get_gr50(parameters: list,
                 0.0000001,
                 max_conc)
             gr50_all.append(gr50)
-        except ValueError('No GR50 value was found; Setting GR50 value to max_concentration'):
+        except Exception as err:
+            print(f'No GR50 value was found; Setting GR50 value to max_concentration. Error message: {err}')
             gr50_all.append(max_conc)
 
     return gr50_all
@@ -406,13 +408,17 @@ def plot_growth_curves(results: Dict,
 
 def plot_elbow(results: Dict):
     final_nllhs = [np.min(results[f'{idx}_subpopulations']['fval']) for idx in range(1, len(results))]
+    ax = plt.figure(figsize=(10, 8))
     plt.plot(range(1, len(results)), final_nllhs, 'o-')
     plt.ylabel('Negative log-likelihood')
     plt.xlabel('Number of inferred populations')
+    return ax
 
 
 def plot_bic(results: Dict):
     final_bic = [results[f'{idx}_subpopulations']['BIC'] for idx in range(1, len(results))]
+    ax = plt.figure(figsize=(10, 8))
     plt.plot(range(1, len(results)), final_bic, 'o-')
-    plt.ylabel('Negative log-likelihood')
+    plt.ylabel('BIC')
     plt.xlabel('Number of inferred populations')
+    return ax
