@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from typing import Dict
-from mixpopid.mixpopid import rate_expo
+from pyphenopop.mixpopid import rate_expo
 
 
 def plot_growth_curves(results: Dict,

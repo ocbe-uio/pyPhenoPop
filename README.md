@@ -28,5 +28,5 @@ and installing from the local repository via
 A tutorial using data from the original [publication](https://doi.org/10.1101/2022.01.17.476604) is provided in `examples/tutorial.ipynb`. Additional information can be obtained by executing
 
 ```
-from pyphenopop.pyphenopop import mixture_id
+from pyphenopop.mixpopid import mixture_id
 help(mixture_id)
