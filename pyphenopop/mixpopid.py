@@ -257,7 +257,8 @@ def mixture_id(max_subpop: int,
     results = {}
     for num_subpop in np.arange(1, max_subpop + 1):
         print(f'Optimizing for {num_subpop} subpopulation(s)')
-        results[f'{num_subpop}_subpopulations'] = {'fval': [], 'parameters': [], 'BIC': np.inf, 'AIC': np.inf}
+        subpop_key = f'{num_subpop}_subpopulations'
+        results[subpop_key] = {'fval': [], 'parameters': [], 'BIC': np.inf, 'AIC': np.inf}
 
         def obj(x):
             return neg_log_likelihood(num_subpop,
@@ -279,26 +280,26 @@ def mixture_id(max_subpop: int,
             try:
                 result = minimize(obj, x0, method=optimizer_options['method'], bounds=bnds,
                                   options=optimizer_options['options'])
-                results[f'{num_subpop}_subpopulations']['fval'].append(result['fun'])
-                results[f'{num_subpop}_subpopulations']['parameters'].append(result['x'])
+                results[subpop_key]['fval'].append(result['fun'])
+                results[subpop_key]['parameters'].append(result['x'])
             except Exception as err:
                 print(
                     f'optimization failed for {num_subpop} subpopulations and start {n}, with initial parameters {x0}.'
                     f'Error message: {err}'
                 )
         final_idx = np.argmin(results[f'{num_subpop}_subpopulations']['fval'])
-        fval = results[f'{num_subpop}_subpopulations']['fval'][final_idx]
-        x_final = results[f'{num_subpop}_subpopulations']['parameters'][final_idx]
-        results[f'{num_subpop}_subpopulations']['final_fval'] = fval
-        results[f'{num_subpop}_subpopulations']['final_parameters'] = x_final
-        results[f'{num_subpop}_subpopulations']['gr50'] = get_gr50(x_final, concentrations, num_subpop)
+        fval = results[subpop_key]['fval'][final_idx]
+        x_final = results[subpop_key]['parameters'][final_idx]
+        results[subpop_key]['final_fval'] = fval
+        results[subpop_key]['final_parameters'] = x_final
+        results[subpop_key]['gr50'] = get_gr50(x_final, concentrations, num_subpop)
         x_final_all.append(x_final)
         fval_all.append(fval)
         bic_temp = len(bnds) * np.log(num_datapoints) + 2 * fval
-        results[f'{num_subpop}_subpopulations']['BIC'] = bic_temp
+        results[subpop_key]['BIC'] = bic_temp
 
         aic_temp = len(bnds) * 2 + 2 * fval
-        results[f'{num_subpop}_subpopulations']['AIC'] = aic_temp
+        results[subpop_key]['AIC'] = aic_temp
 
         if selection_method == 'AIC':
             if aic_temp < aic:
