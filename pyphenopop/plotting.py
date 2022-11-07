@@ -2,10 +2,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 from typing import Dict, Union
 from pyphenopop.mixpopid import rate_expo
+import pandas as pd
 
 
 def plot_growth_curves(results: Dict,
-                       concentrations: np.ndarray,
+                       concentrations: Union[list, np.ndarray],
                        subpopulation_index: Union[int, str] = 'best'):
     if subpopulation_index == 'best':
         subpopulation_index = results['summary']['estimated_num_populations']
@@ -48,3 +49,67 @@ def plot_aic(results: Dict):
     plt.ylabel('AIC')
     plt.xlabel('Number of inferred populations')
     return ax
+
+
+def plot_in_time(data_file: str,
+                 num_replicates: int,
+                 timepoints: Union[list, np.ndarray],
+                 concentrations: Union[list, np.ndarray],
+                 title: str = None):
+
+    num_concentrations = len(concentrations)
+    num_timepoints = len(timepoints)
+    measurements = np.array(pd.read_csv(data_file, header=None))
+    measurements = measurements.reshape((num_timepoints, num_replicates, num_concentrations))
+    measurements = measurements.transpose(1, 2, 0)
+    conc_colors = [plt.cm.viridis(1 - 1 / (len(concentrations)) - conc_idx / (len(concentrations))) for conc_idx in
+                   range(len(concentrations))]
+    meanval = np.mean(measurements, axis=0)
+    stdval = np.std(measurements, axis=0)
+    fig, ax = plt.subplots(figsize=(10, 8))
+    for conc_index in range(num_concentrations):
+        ax.errorbar(timepoints, meanval[conc_index, :], yerr=stdval[conc_index, :], color=conc_colors[conc_index],
+                    label="Concentration " + str(concentrations[conc_index]))
+        for rep_index in range(num_replicates):
+            ax.scatter(timepoints, measurements[rep_index, conc_index, :], color=conc_colors[conc_index], label=None)
+    plt.xlabel("Time")
+    plt.ylabel("Cell count")
+    plt.title(title)
+    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.tight_layout()
+    plt.show()
+    return ax
+
+
+def plot_in_conc(data_file: str,
+                 num_replicates: int,
+                 timepoints: Union[list, np.ndarray],
+                 concentrations: Union[list, np.ndarray],
+                 title: str = None):
+
+    num_concentrations = len(concentrations)
+    num_timepoints = len(timepoints)
+    measurements = np.array(pd.read_csv(data_file, header=None))
+    measurements = measurements.reshape((num_timepoints, num_replicates, num_concentrations))
+    measurements = measurements.transpose(1, 2, 0)
+
+    time_colors = [plt.cm.plasma(1 - 1 / num_timepoints - time_idx / num_timepoints) for time_idx in
+                   range(num_timepoints)]
+    meanval = np.mean(measurements, axis=0)
+    stdval = np.std(measurements, axis=0)
+    fig, ax = plt.subplots(figsize=(10, 8))
+    ax.set_xscale('log')
+    for time_index in range(1, num_timepoints):
+        ax.errorbar(concentrations, meanval[:, time_index], yerr=stdval[:, time_index], color=time_colors[time_index],
+                    label=str(timepoints[time_index]) + " hours")
+        for rep_index in range(num_replicates):
+            if rep_index == 0:
+                ax.scatter(concentrations, measurements[rep_index, :, time_index], color=time_colors[time_index])
+            else:
+                ax.scatter(concentrations, measurements[rep_index, :, time_index], color=time_colors[time_index])
+    plt.xlabel("Drug concentration")
+    plt.ylabel("Cell count")
+    plt.title(title)
+    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.tight_layout()
+    plt.show()
