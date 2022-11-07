@@ -10,7 +10,7 @@ def rate_expo(parameters: list,
               concentrations: np.ndarray):
     """
     A function calculating a growth rate of a certain cell population with 
-    parameters p exposed to a certain drug with given concentrations according
+    parameters exposed to a certain drug with given concentrations according
     to the exponential cell population growth model.
     
     Arguments:
@@ -37,11 +37,10 @@ def pop_expo(parameters: list,
         * timepoints: time vector
         
     """
-    # Reshaping the time points and the rates vectors to perform a
-    # multiplication:
+    # Reshaping the timepoints and the rates vectors to perform a multiplication:
     timepoints_rshpe = np.reshape(timepoints, (1, len(timepoints)))
     rates = np.reshape(rate_expo(parameters, concentrations), (len(concentrations), 1))
-    # Returns a matrix with population counts where lines correspond to 
+    # Returns a matrix with population counts where rows correspond to
     # concentrations and columns to time points:
     return np.exp(rates @ timepoints_rshpe)
 
@@ -58,7 +57,7 @@ def neg_log_likelihood(max_subpop: int,
                        num_noise_high: int,
                        num_noise_low: int):
     """
-    This function calculates the negative value of log-likelihood for a given
+    This function calculates the negative log-likelihood for a given
     model. Function's minimum is the optimal parameter estimate. 
     
     Arguments:
@@ -67,14 +66,14 @@ def neg_log_likelihood(max_subpop: int,
         Params must be mixture parameters, the last two are higher and lower 
         variance levels. Higher variance appears at concentration levels
         smaller than ConcT and time points after TimeT
-        * measurements: Cell count at each independent variable condition. DATA should
+        * measurements: Cell count at each independent variable condition. measurements should
         be structured as follows: DATA[k][j][i] ia cell count for the k-th 
         replicate at the j-th concentration at the i-th time point
         * concvec: List of concentrations considered measured in micromoles
         * timevec: List of time points measured in hours
         * num_replicates: number of replicates
         * model: A string representing a cell population growth model
-        considered, for example "expo" means exponential model. This variable 
+        considered, for example 'expo' means exponential model. This variable
         determines a form of the parameter vector and a function calculating 
         cell population number.
         * num_timepoints_high: Number of time points with higher level of noise
@@ -91,13 +90,11 @@ def neg_log_likelihood(max_subpop: int,
 
     # Creating a model specific parameter vector based on the chosen model:
     p = parameters[max_subpop - 1:-2]
-    if model == "expo":
+    if model == 'expo':
         if len(p) % 4 == 0:
             parameters_per_subpop = [[p[4 * j + i] for i in np.arange(4)] for j in np.arange(max_subpop)]
         else:
-            raise KeyError("Error: parameter vector not suited for the chosen model")
-        # Choosing a function calculating cell population number based on the
-        # chosen model:
+            raise KeyError('Error: parameter vector not suited for the chosen model')
         pop_model = pop_expo
     else:
         raise NotImplementedError
@@ -114,7 +111,7 @@ def neg_log_likelihood(max_subpop: int,
     sigma_matrix = np.ones((len(concvec), len(timevec))) / (2 * sigma_low ** 2)
     sigma_matrix[:num_conc_high_noise, len(timevec) - num_timepoints_high:] = 1 / (
             2 * sigma_high ** 2)  # higher noise is in the top right
-    # corner (time bigger than 48 hours, concentration lower than 0.1)
+    # corner (time bigger than time_threshold, concentration lower than conc_threshold)
     x_all = []
     for pop_idx in range(max_subpop - 1):
         x_all.append(mixture_params[pop_idx] * pop_model(parameters_per_subpop[pop_idx], concvec, timevec))
@@ -124,15 +121,14 @@ def neg_log_likelihood(max_subpop: int,
         initial_counts = np.reshape(np.repeat(measurements[rep_idx, :, 0], len(timevec)), (len(concvec), len(timevec)))
         for pop_idx in range(max_subpop - 1):
             x = x_all[pop_idx]
-            # We need to multiply DATA[k,:,0] (the initial cell count for all
+            # We need to multiply measurements[k,:,0] (the initial cell count for all
             # concentrations for k-th replicate) by x, element by element
-            # concentration wise, DATA[k,:,0] being the same fot every time point
-            # of x, so we form a matrix where DATA[k,:,0] is repeated the same
+            # concentration wise, measurements[k,:,0] being the same for every time point
+            # of x, so we form a matrix where measurements[k,:,0] is repeated the same
             # number of times as the number of time points, and than reshaped to
             # correspond to the dimensions of x for element wise multiplication:
             simulated_counts += initial_counts * x  # s is a matrix containing counts summed for
-            # all subpopulation in a corresponding proportion for all time
-            # points and concentrations
+            # all subpopulation in a corresponding proportion for all time points and concentrations
 
         # Last subpopulation:
         x = x_all[-1]
@@ -155,7 +151,7 @@ def mixture_id(max_subpop: int,
                timepoints: Union[list, np.ndarray],
                concentrations: Union[list, np.ndarray],
                num_replicates: int,
-               model: str = "expo",
+               model: str = 'expo',
                bounds_model: Dict = None,
                bounds_sigma_high: Tuple = (1e-05, 10000.0),
                bounds_sigma_low: Tuple = (1e-05, 5000.0),
@@ -205,7 +201,7 @@ def mixture_id(max_subpop: int,
         * timepoints: list of time points measured in hours
         * concentrations: list of concentrations considered  measured in micromoles
         * num_replicates: number of replicates
-        * model: cell population growth model considered, exponential ("expo")
+        * model: cell population growth model considered, exponential ('expo')
         by default
         * bounds_model: bounds for parameter inference in a form of a
         dictionary where keys are model specific parameter names and values are tuples (lower and higher bounds);
@@ -213,7 +209,7 @@ def mixture_id(max_subpop: int,
         form of a tuple (lower and higher bounds); default: bounds_sigma_high = (1e-05, 1000.0)
         * bounds_sigma_low: lower sigma bounds used to infer the parameter in a
         form of a tuple (lower and higher bounds); default: bounds_sigma_low = (1e-05, 1000.0)
-        * optimizer_options: Dict with keys "method" and "options" that is passed to scipy.optimize.minimize to adapt
+        * optimizer_options: Dict with keys 'method' and 'options' that is passed to scipy.optimize.minimize to adapt
         the optimization algorithm and optimization options
         * num_optim: number of objective function optimization attempts; default: num_optim = 200
         
@@ -235,7 +231,7 @@ def mixture_id(max_subpop: int,
     measurements = measurements.transpose(1, 2, 0)
 
     # Fixed thresholds for concentration and time in order to choose either
-    # higher or lower variance level (sigmaH and sigmaL):
+    # higher or lower variance level (sigma_high and sigma_low):
     conc_threshold = 0.1
     time_threshold = 48
 
@@ -248,7 +244,7 @@ def mixture_id(max_subpop: int,
     fval_all = []
 
     # Comparing BIC for all models with a number of populations considered from
-    # 1 to PopN in order to find the best fit:
+    # 1 to max_subpop in order to find the best fit:
     sorted_timepoints = np.sort(timepoints)[1:]  # time starts from the second value since the
     # first one is taken from the data
     sorted_concentrations = np.sort(concentrations)
@@ -258,7 +254,7 @@ def mixture_id(max_subpop: int,
     num_noise_low = num_replicates * len(sorted_timepoints) * num_concentrations - num_noise_high
     results = {}
     for num_subpop in np.arange(1, max_subpop + 1):
-        print(f'Optimizing for {num_subpop} subpopulations')
+        print(f'Optimizing for {num_subpop} subpopulation(s)')
         results[f'{num_subpop}_subpopulations'] = {'fval': [], 'parameters': [], 'BIC': np.inf}
 
         def obj(x):
@@ -285,7 +281,7 @@ def mixture_id(max_subpop: int,
                 results[f'{num_subpop}_subpopulations']['parameters'].append(result['x'])
             except Exception as err:
                 print(
-                    f'optimization failed for {num_subpop} subpopulations and start {n}, which initial parameters {x0}.'
+                    f'optimization failed for {num_subpop} subpopulations and start {n}, with initial parameters {x0}.'
                     f'Error message: {err}'
                 )
         final_idx = np.argmin(results[f'{num_subpop}_subpopulations']['fval'])
@@ -307,7 +303,7 @@ def mixture_id(max_subpop: int,
                           'best_optimization_idx': np.nanargmin(results[f'{final_pop_idx}_subpopulations']['fval']),
                           'final_parameters': x_final_all[final_pop_idx - 1]}
 
-    print_results(x_final_all, fval_all, final_pop_idx, bounds_model, model)
+    print_results(x_final_all, fval_all, final_pop_idx, model)
 
     return results
 
@@ -315,24 +311,23 @@ def mixture_id(max_subpop: int,
 def print_results(x_final_all: list,
                   fval_all: list,
                   final_pop_idx: int,
-                  bounds_model: Dict,
                   model: str):
     x_final = x_final_all[final_pop_idx - 1]
     fval = fval_all[final_pop_idx - 1]
-    print("Estimated number of cell populations: ", final_pop_idx)
-    print("Minimal negative log-likelihood value found: ", fval)
+    print('Estimated number of cell populations: ', final_pop_idx)
+    print('Minimal negative log-likelihood value found: ', fval)
     mixture_parameters = list(x_final[0:(final_pop_idx - 1)])
     mixture_parameters.append(1 - np.sum(mixture_parameters))
-    print("Mixture parameter(s): ", 1 if final_pop_idx == 1 else mixture_parameters)
-    if model == "expo":
+    print('Mixture parameter(s): ', 1 if final_pop_idx == 1 else mixture_parameters)
+    if model == 'expo':
         for i in range(final_pop_idx):
-            print("Model parameters for subpopulation #%s:" % (i + 1))
-            print("alpha : ", x_final[final_pop_idx - 1 + len(bounds_model) * i])
-            print("b : ", x_final[final_pop_idx - 1 + len(bounds_model) * i + 1])
-            print("E : ", x_final[final_pop_idx - 1 + len(bounds_model) * i + 2])
-            print("n : ", x_final[final_pop_idx - 1 + len(bounds_model) * i + 3])
-        print("Sigma high:", x_final[-2])
-        print("Sigma low:", x_final[-1])
+            print(f'Model parameters for subpopulation {i+1}:')
+            print('alpha : ', x_final[final_pop_idx - 1 + 4 * i])
+            print('b : ', x_final[final_pop_idx - 1 + 4 * i + 1])
+            print('E : ', x_final[final_pop_idx - 1 + 4 * i + 2])
+            print('n : ', x_final[final_pop_idx - 1 + 4 * i + 3])
+        print('Sigma high:', x_final[-2])
+        print('Sigma low:', x_final[-1])
     else:
         raise NotImplementedError
 
