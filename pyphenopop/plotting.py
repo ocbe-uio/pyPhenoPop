@@ -73,3 +73,29 @@ def plot_in_time(measurements: np.ndarray,
     plt.tight_layout()
     plt.show()
     return ax
+
+
+def plot_in_conc(measurements: np.ndarray,
+                 num_timepoints: int,
+                 num_replicates: int,
+                 timepoints: Union[list, np.ndarray],
+                 concentrations: Union[list, np.ndarray],
+                 title: str = None):
+    time_colors = [plt.cm.plasma(1 - 1 / num_timepoints - time_idx / num_timepoints) for time_idx in range(num_timepoints)]
+    meanval = np.mean(measurements, axis=0)
+    stdval = np.std(measurements, axis=0)
+    fig, ax = plt.subplots(figsize=(10, 8))
+    ax.set_xscale('log')
+    for time_index in range(1, num_timepoints):
+        ax.errorbar(concentrations, meanval[:, time_index], yerr=stdval[:, time_index], color=time_colors[time_index], label=str(timepoints[time_index])+" hours")
+        for rep_index in range(num_replicates):
+            if rep_index == 0:
+                ax.scatter(concentrations, measurements[rep_index, :, time_index], color=time_colors[time_index])
+            else:
+                ax.scatter(concentrations, measurements[rep_index, :, time_index], color=time_colors[time_index])
+    plt.xlabel("Drug concentration")
+    plt.ylabel("Cell count")
+    plt.title(title)
+    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.tight_layout()
+    plt.show()
