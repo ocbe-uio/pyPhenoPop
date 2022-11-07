@@ -1,16 +1,18 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from typing import Dict
+from typing import Dict, Union
 from pyphenopop.mixpopid import rate_expo
 
 
 def plot_growth_curves(results: Dict,
-                       concentrations: np.ndarray):
-    final_pop_idx = results['summary']['estimated_num_populations']
-    x_final = results['summary']['final_parameters']
+                       concentrations: np.ndarray,
+                       subpopulation_index: Union[int, str] = 'best'):
+    if subpopulation_index == 'best':
+        subpopulation_index = results['summary']['estimated_num_populations']
+    x_final = results[f'{subpopulation_index}_subpopulations']['final_parameters']
     ax = plt.figure(figsize=(10, 8))
-    for i in range(final_pop_idx):
-        param = x_final[4 * i + final_pop_idx - 1:4 * i + final_pop_idx + 3]
+    for i in range(subpopulation_index):
+        param = x_final[4 * i + subpopulation_index - 1:4 * i + subpopulation_index + 3]
         plt.semilogx(concentrations, [rate_expo(param, x) for x in sorted(concentrations)], '-*', linewidth=3,
                      label="Subpopulation #%s" % (i + 1))
 
