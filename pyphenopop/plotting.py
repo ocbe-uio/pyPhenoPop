@@ -37,3 +37,12 @@ def plot_bic(results: Dict):
     plt.ylabel('BIC')
     plt.xlabel('Number of inferred populations')
     return ax
+
+
+def plot_aic(results: Dict):
+    final_bic = [results[f'{idx}_subpopulations']['AIC'] for idx in range(1, len(results))]
+    ax = plt.figure(figsize=(10, 8))
+    plt.plot(range(1, len(results)), final_bic, 'o-')
+    plt.ylabel('AIC')
+    plt.xlabel('Number of inferred populations')
+    return ax
