@@ -5,7 +5,7 @@ from pyphenopop.mixpopid import rate_expo
 
 
 def plot_growth_curves(results: Dict,
-                       concentrations: np.ndarray,
+                       concentrations: Union[list, np.ndarray],
                        subpopulation_index: Union[int, str] = 'best'):
     if subpopulation_index == 'best':
         subpopulation_index = results['summary']['estimated_num_populations']
@@ -47,4 +47,29 @@ def plot_aic(results: Dict):
     plt.plot(range(1, len(results)), final_bic, 'o-')
     plt.ylabel('AIC')
     plt.xlabel('Number of inferred populations')
+    return ax
+
+
+def plot_in_time(measurements: np.ndarray,
+                 num_concentrations: int,
+                 num_replicates: int,
+                 timepoints: Union[list, np.ndarray],
+                 concentrations: Union[list, np.ndarray],
+                 title: str = None):
+    conc_colors = [plt.cm.viridis(1 - 1 / (len(concentrations)) - conc_idx / (len(concentrations))) for conc_idx in
+                   range(len(concentrations))]
+    meanval = np.mean(measurements, axis=0)
+    stdval = np.std(measurements, axis=0)
+    fig, ax = plt.subplots(figsize=(10, 8))
+    for conc_index in range(num_concentrations):
+        ax.errorbar(timepoints, meanval[conc_index, :], yerr=stdval[conc_index, :], color=conc_colors[conc_index],
+                    label="Concentration " + str(concentrations[conc_index]))
+        for rep_index in range(num_replicates):
+            ax.scatter(timepoints, measurements[rep_index, conc_index, :], color=conc_colors[conc_index], label=None)
+    plt.xlabel("Time")
+    plt.ylabel("Cell count")
+    plt.title(title)
+    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.tight_layout()
+    plt.show()
     return ax
