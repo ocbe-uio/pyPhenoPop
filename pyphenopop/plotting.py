@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from typing import Dict, Union
 from pyphenopop.mixpopid import rate_expo
+import pandas as pd
 
 
 def plot_growth_curves(results: Dict,
@@ -50,12 +51,17 @@ def plot_aic(results: Dict):
     return ax
 
 
-def plot_in_time(measurements: np.ndarray,
-                 num_concentrations: int,
+def plot_in_time(data_file: str,
                  num_replicates: int,
                  timepoints: Union[list, np.ndarray],
                  concentrations: Union[list, np.ndarray],
                  title: str = None):
+
+    num_concentrations = len(concentrations)
+    num_timepoints = len(timepoints)
+    measurements = np.array(pd.read_csv(data_file, header=None))
+    measurements = measurements.reshape((num_timepoints, num_replicates, num_concentrations))
+    measurements = measurements.transpose(1, 2, 0)
     conc_colors = [plt.cm.viridis(1 - 1 / (len(concentrations)) - conc_idx / (len(concentrations))) for conc_idx in
                    range(len(concentrations))]
     meanval = np.mean(measurements, axis=0)
@@ -75,12 +81,18 @@ def plot_in_time(measurements: np.ndarray,
     return ax
 
 
-def plot_in_conc(measurements: np.ndarray,
-                 num_timepoints: int,
+def plot_in_conc(data_file: str,
                  num_replicates: int,
                  timepoints: Union[list, np.ndarray],
                  concentrations: Union[list, np.ndarray],
                  title: str = None):
+
+    num_concentrations = len(concentrations)
+    num_timepoints = len(timepoints)
+    measurements = np.array(pd.read_csv(data_file, header=None))
+    measurements = measurements.reshape((num_timepoints, num_replicates, num_concentrations))
+    measurements = measurements.transpose(1, 2, 0)
+
     time_colors = [plt.cm.plasma(1 - 1 / num_timepoints - time_idx / num_timepoints) for time_idx in
                    range(num_timepoints)]
     meanval = np.mean(measurements, axis=0)
