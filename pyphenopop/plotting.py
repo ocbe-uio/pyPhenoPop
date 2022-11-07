@@ -81,13 +81,15 @@ def plot_in_conc(measurements: np.ndarray,
                  timepoints: Union[list, np.ndarray],
                  concentrations: Union[list, np.ndarray],
                  title: str = None):
-    time_colors = [plt.cm.plasma(1 - 1 / num_timepoints - time_idx / num_timepoints) for time_idx in range(num_timepoints)]
+    time_colors = [plt.cm.plasma(1 - 1 / num_timepoints - time_idx / num_timepoints) for time_idx in
+                   range(num_timepoints)]
     meanval = np.mean(measurements, axis=0)
     stdval = np.std(measurements, axis=0)
     fig, ax = plt.subplots(figsize=(10, 8))
     ax.set_xscale('log')
     for time_index in range(1, num_timepoints):
-        ax.errorbar(concentrations, meanval[:, time_index], yerr=stdval[:, time_index], color=time_colors[time_index], label=str(timepoints[time_index])+" hours")
+        ax.errorbar(concentrations, meanval[:, time_index], yerr=stdval[:, time_index], color=time_colors[time_index],
+                    label=str(timepoints[time_index]) + " hours")
         for rep_index in range(num_replicates):
             if rep_index == 0:
                 ax.scatter(concentrations, measurements[rep_index, :, time_index], color=time_colors[time_index])
