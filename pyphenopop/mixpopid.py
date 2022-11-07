@@ -303,7 +303,7 @@ def mixture_id(max_subpop: int,
                           'best_optimization_idx': np.nanargmin(results[f'{final_pop_idx}_subpopulations']['fval']),
                           'final_parameters': x_final_all[final_pop_idx - 1]}
 
-    print_results(x_final_all, fval_all, final_pop_idx, model)
+    print_results(x_final_all, fval_all, final_pop_idx, concentrations, model)
 
     return results
 
@@ -311,21 +311,24 @@ def mixture_id(max_subpop: int,
 def print_results(x_final_all: list,
                   fval_all: list,
                   final_pop_idx: int,
+                  concentrations: np.ndarray,
                   model: str):
     x_final = x_final_all[final_pop_idx - 1]
     fval = fval_all[final_pop_idx - 1]
+    gr50 = get_gr50(x_final, concentrations, final_pop_idx)
     print('Estimated number of cell populations: ', final_pop_idx)
     print('Minimal negative log-likelihood value found: ', fval)
     mixture_parameters = list(x_final[0:(final_pop_idx - 1)])
     mixture_parameters.append(1 - np.sum(mixture_parameters))
     print('Mixture parameter(s): ', 1 if final_pop_idx == 1 else mixture_parameters)
     if model == 'expo':
-        for i in range(final_pop_idx):
-            print(f'Model parameters for subpopulation {i+1}:')
-            print('alpha : ', x_final[final_pop_idx - 1 + 4 * i])
-            print('b : ', x_final[final_pop_idx - 1 + 4 * i + 1])
-            print('E : ', x_final[final_pop_idx - 1 + 4 * i + 2])
-            print('n : ', x_final[final_pop_idx - 1 + 4 * i + 3])
+        for idx in range(final_pop_idx):
+            print(f'Model parameters for subpopulation {idx+1}:')
+            print(f'Estimated GR50: {gr50[idx]}')
+            print('alpha : ', x_final[final_pop_idx - 1 + 4 * idx])
+            print('b : ', x_final[final_pop_idx - 1 + 4 * idx + 1])
+            print('E : ', x_final[final_pop_idx - 1 + 4 * idx + 2])
+            print('n : ', x_final[final_pop_idx - 1 + 4 * idx + 3])
         print('Sigma high:', x_final[-2])
         print('Sigma low:', x_final[-1])
     else:
