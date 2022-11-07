@@ -156,7 +156,8 @@ def mixture_id(max_subpop: int,
                bounds_sigma_high: Tuple = (1e-05, 10000.0),
                bounds_sigma_low: Tuple = (1e-05, 5000.0),
                optimizer_options: Dict = None,
-               num_optim: int = 200):
+               num_optim: int = 200,
+               selection_method: str = 'BIC'):
     """
     This is a function that serves to determine the number of cell 
     subpopulations found in a given mixture with a maximum of PopN, and in what
@@ -212,7 +213,7 @@ def mixture_id(max_subpop: int,
         * optimizer_options: Dict with keys 'method' and 'options' that is passed to scipy.optimize.minimize to adapt
         the optimization algorithm and optimization options
         * num_optim: number of objective function optimization attempts; default: num_optim = 200
-        
+        * selection_method: Model selection method. Either 'AIC' or 'BIC'.
     """
 
     if bounds_model is None:
@@ -239,6 +240,7 @@ def mixture_id(max_subpop: int,
 
     # Initializing Bayesian information criterion:
     bic = np.inf
+    aic = np.inf
     final_pop_idx = 1
     x_final_all = []
     fval_all = []
@@ -255,7 +257,7 @@ def mixture_id(max_subpop: int,
     results = {}
     for num_subpop in np.arange(1, max_subpop + 1):
         print(f'Optimizing for {num_subpop} subpopulation(s)')
-        results[f'{num_subpop}_subpopulations'] = {'fval': [], 'parameters': [], 'BIC': np.inf}
+        results[f'{num_subpop}_subpopulations'] = {'fval': [], 'parameters': [], 'BIC': np.inf, 'AIC': np.inf}
 
         def obj(x):
             return neg_log_likelihood(num_subpop,
@@ -294,16 +296,34 @@ def mixture_id(max_subpop: int,
         fval_all.append(fval)
         bic_temp = len(bnds) * np.log(num_datapoints) + 2 * fval
         results[f'{num_subpop}_subpopulations']['BIC'] = bic_temp
-        # Choosing the model with the smallest BIC:
-        if bic_temp < bic:
-            bic = bic_temp
-            final_pop_idx = num_subpop
+
+        aic_temp = len(bnds) * 2 + 2 * fval
+        results[f'{num_subpop}_subpopulations']['AIC'] = aic_temp
+
+        if selection_method == 'AIC':
+            if aic_temp < aic:
+                aic = aic_temp
+                final_pop_idx = num_subpop
+            if bic_temp < bic:
+                bic = bic_temp
+        elif selection_method == 'BIC':
+            if aic_temp < aic:
+                aic = aic_temp
+
+            if bic_temp < bic:
+                bic = bic_temp
+                final_pop_idx = num_subpop
+        else:
+            raise NotImplementedError(
+                f'Selection method should be either "AIC" or "BIC". {selection_method} was provided'
+            )
+
     results['summary'] = {'estimated_num_populations': final_pop_idx,
                           'final_neg_log_likelihood': fval_all[final_pop_idx - 1],
                           'best_optimization_idx': np.nanargmin(results[f'{final_pop_idx}_subpopulations']['fval']),
                           'final_parameters': x_final_all[final_pop_idx - 1]}
 
-    print_results(x_final_all, fval_all, final_pop_idx, concentrations, model)
+    print_results(x_final_all, fval_all, final_pop_idx, concentrations, model, selection_method)
 
     return results
 
@@ -312,12 +332,13 @@ def print_results(x_final_all: list,
                   fval_all: list,
                   final_pop_idx: int,
                   concentrations: np.ndarray,
-                  model: str):
+                  model: str,
+                  selection_method: str):
     x_final = x_final_all[final_pop_idx - 1]
     fval = fval_all[final_pop_idx - 1]
     gr50 = get_gr50(x_final, concentrations, final_pop_idx)
-    print('Estimated number of cell populations: ', final_pop_idx)
-    print('Minimal negative log-likelihood value found: ', fval)
+    print(f'Estimated number of cell populations based on {selection_method}: {final_pop_idx}')
+    print(f'Minimal negative log-likelihood value found: {fval}')
     mixture_parameters = list(x_final[0:(final_pop_idx - 1)])
     mixture_parameters.append(1 - np.sum(mixture_parameters))
     print('Mixture parameter(s): ', 1 if final_pop_idx == 1 else mixture_parameters)
