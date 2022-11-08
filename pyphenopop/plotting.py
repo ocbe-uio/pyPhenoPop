@@ -24,7 +24,7 @@ def plot_growth_curves(results: Dict,
     return ax
 
 
-def plot_elbow(results: Dict):
+def plot_neg_llh(results: Dict):
     final_nllhs = [np.min(results[f'{idx}_subpopulations']['fval']) for idx in range(1, len(results))]
     ax = plt.figure(figsize=(10, 8))
     plt.plot(range(1, len(results)), final_nllhs, 'o-')
