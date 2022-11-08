@@ -328,7 +328,7 @@ def mixture_id(max_subpop: int,
 
     results['summary'] = {'estimated_num_populations': final_pop_idx,
                           'final_neg_log_likelihood': fval_all[final_pop_idx - 1],
-                          'best_optimization_idx': np.nanargmin(results[f'{final_pop_idx}_subpopulations']['fval']),
+                          'best_optimization_idx': np.argmin(results[f'{final_pop_idx}_subpopulations']['fval']),
                           'final_parameters': x_final_all[final_pop_idx - 1]}
 
     print_results(x_final_all, fval_all, final_pop_idx, concentrations, model, selection_method)
