@@ -280,8 +280,15 @@ def mixture_id(max_subpop: int,
             try:
                 result = minimize(obj, x0, method=optimizer_options['method'], bounds=bnds,
                                   options=optimizer_options['options'])
-                results[subpop_key]['fval'].append(result['fun'])
-                results[subpop_key]['parameters'].append(result['x'])
+                tmp_mix_params = list(result['x'][0:(num_subpop - 1)])
+                tmp_mix_params.append(1 - np.sum(tmp_mix_params))
+                tmp_mix_params = np.array(tmp_mix_params)
+                if np.any(tmp_mix_params < 0):
+                    results[subpop_key]['fval'].append(np.inf)
+                    results[subpop_key]['parameters'].append(result['x'])
+                else:
+                    results[subpop_key]['fval'].append(result['fun'])
+                    results[subpop_key]['parameters'].append(result['x'])
             except Exception as err:
                 print(
                     f'optimization failed for {num_subpop} subpopulations and start {n}, with initial parameters {x0}.'
@@ -345,7 +352,7 @@ def print_results(x_final_all: list,
     print('Mixture parameter(s): ', 1 if final_pop_idx == 1 else mixture_parameters)
     if model == 'expo':
         for idx in range(final_pop_idx):
-            print(f'Model parameters for subpopulation {idx+1}:')
+            print(f'Model parameters for subpopulation {idx + 1}:')
             print(f'Estimated GR50: {gr50[idx]}')
             print('alpha : ', x_final[final_pop_idx - 1 + 4 * idx])
             print('b : ', x_final[final_pop_idx - 1 + 4 * idx + 1])
