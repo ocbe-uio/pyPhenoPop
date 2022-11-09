@@ -152,3 +152,4 @@ def plot_in_conc(data_file: str,
     plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.tight_layout()
     plt.show()
+    return ax
