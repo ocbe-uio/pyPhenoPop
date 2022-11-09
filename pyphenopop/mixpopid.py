@@ -200,7 +200,7 @@ def mixture_id(max_subpop: int,
         * max_subpop: maximum number of cell subpopulations considered
         * data_file: Name of the file containing the measured cell counts.
         * timepoints: list of time points measured in hours
-        * concentrations: list of concentrations considered  measured in micromoles
+        * concentrations: list of concentrations considered
         * num_replicates: number of replicates
         * model: cell population growth model considered, exponential ('expo')
         by default
@@ -339,9 +339,20 @@ def mixture_id(max_subpop: int,
 def print_results(x_final_all: list,
                   fval_all: list,
                   final_pop_idx: int,
-                  concentrations: np.ndarray,
+                  concentrations: Union[list, np.ndarray],
                   model: str,
                   selection_method: str):
+    """
+    Prints a summary of the results for a specific subpopulation model (usually the best model defined by the
+    selection_method.
+    Arguments:
+        * x_final_all: List with optimized parameters for all subpopulation models.
+        * fval_all: List with optimal neg. log-likelihood values for all subpopulation models.
+        * final_pop_idx: Index of subpopulation model for which results should be printed.
+        * concentrations: List of concentrations considered.
+        * model: Cell population growth model considered, exponential. Currently only 'expo' is supported.
+        * selection_method: Method used for model selection. Only used for printing purposes.
+    """
     x_final = x_final_all[final_pop_idx - 1]
     fval = fval_all[final_pop_idx - 1]
     gr50 = get_gr50(x_final, concentrations, final_pop_idx)
@@ -368,6 +379,13 @@ def get_optimization_bounds(num_subpop: int,
                             bounds_model: Dict,
                             bounds_sigma_low: Tuple,
                             bounds_sigma_high: Tuple):
+    """
+    Arguments:
+        * num_subpop: Number of subpopulations.
+        * bounds_model: Dictionary with parameter bounds for 'alpha', 'b', 'E' and 'n'.
+        * bounds_sigma_low: Parameter bounds for sigma_low.
+        * bounds_sigma_high: Parameter bounds for sigma_high.
+    """
     # Changing the format of chosen bounds to fit the optimization procedure:
     if num_subpop > 1:
         bnds = [(0.0, 0.5) for _ in np.arange(num_subpop - 1)]
@@ -390,8 +408,16 @@ def get_optimization_bounds(num_subpop: int,
 
 
 def get_gr50(parameters: list,
-             concentrations: np.ndarray,
+             concentrations: Union[list, np.ndarray],
              max_subpop: int):
+    """
+    Calculate GR50 values.
+
+    Arguments:
+        * parameters: Model parameters used for GR50 calculations.
+        * concentrations: List of concentrations considered.
+        * max_subpop: Maximal number of subpopulations.
+    """
     p = parameters[max_subpop - 1:-2]
     parameters_per_subpop = [[p[4 * j + i] for i in np.arange(4)] for j in np.arange(max_subpop)]
 
