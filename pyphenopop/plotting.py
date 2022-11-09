@@ -8,6 +8,14 @@ import pandas as pd
 def plot_growth_curves(results: Dict,
                        concentrations: Union[list, np.ndarray],
                        subpopulation_index: Union[int, str] = 'best'):
+    """
+    Plots the growth rate curves for different subpopulations.
+    Arguments:
+        * results: Dictionary with results returned by mixture_id.
+        * concentrations: List of concentrations considered.
+        * subpopulation_index: Number of max. subpopulations for which growth rates should be plotted. Default is 'best'
+        as defined by the model selection criteria used in mixture_id.
+    """
     if subpopulation_index == 'best':
         subpopulation_index = results['summary']['estimated_num_populations']
     x_final = results[f'{subpopulation_index}_subpopulations']['final_parameters']
@@ -25,6 +33,11 @@ def plot_growth_curves(results: Dict,
 
 
 def plot_neg_llh(results: Dict):
+    """
+    Plots the negative log-likelihood values for all considered models
+    Arguments:
+        * results: Dictionary with results returned by mixture_id.
+    """
     final_nllhs = [np.min(results[f'{idx}_subpopulations']['fval']) for idx in range(1, len(results))]
     ax = plt.figure(figsize=(10, 8))
     plt.plot(range(1, len(results)), final_nllhs, 'o-')
@@ -34,6 +47,11 @@ def plot_neg_llh(results: Dict):
 
 
 def plot_bic(results: Dict):
+    """
+    Plots the BIC values for all considered models
+    Arguments:
+        * results: Dictionary with results returned by mixture_id.
+    """
     final_bic = [results[f'{idx}_subpopulations']['BIC'] for idx in range(1, len(results))]
     ax = plt.figure(figsize=(10, 8))
     plt.plot(range(1, len(results)), final_bic, 'o-')
@@ -43,6 +61,11 @@ def plot_bic(results: Dict):
 
 
 def plot_aic(results: Dict):
+    """
+    Plots the AIC values for all considered models
+    Arguments:
+        * results: Dictionary with results returned by mixture_id.
+    """
     final_bic = [results[f'{idx}_subpopulations']['AIC'] for idx in range(1, len(results))]
     ax = plt.figure(figsize=(10, 8))
     plt.plot(range(1, len(results)), final_bic, 'o-')
@@ -56,7 +79,15 @@ def plot_in_time(data_file: str,
                  timepoints: Union[list, np.ndarray],
                  concentrations: Union[list, np.ndarray],
                  title: str = None):
-
+    """
+    Plots the data for each concentration over time.
+    Arguments:
+        * data_file: Name of the file containing the measured cell counts.
+        * num_replicates: number of replicates
+        * timepoints: List of time points measured in hours.
+        * concentrations: List of concentrations considered.
+        * title: Title used for plotting.
+    """
     num_concentrations = len(concentrations)
     num_timepoints = len(timepoints)
     measurements = np.array(pd.read_csv(data_file, header=None))
@@ -86,7 +117,15 @@ def plot_in_conc(data_file: str,
                  timepoints: Union[list, np.ndarray],
                  concentrations: Union[list, np.ndarray],
                  title: str = None):
-
+    """
+    Plots the data for each timepoint over concentrations.
+    Arguments:
+        * data_file: Name of the file containing the measured cell counts.
+        * num_replicates: number of replicates
+        * timepoints: List of time points measured in hours.
+        * concentrations: List of concentrations considered.
+        * title: Title used for plotting.
+    """
     num_concentrations = len(concentrations)
     num_timepoints = len(timepoints)
     measurements = np.array(pd.read_csv(data_file, header=None))
@@ -113,3 +152,4 @@ def plot_in_conc(data_file: str,
     plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.tight_layout()
     plt.show()
+    return ax
