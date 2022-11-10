@@ -5,33 +5,6 @@ from pyphenopop.mixpopid import rate_expo
 import pandas as pd
 
 
-def plot_growth_curves(results: Dict,
-                       concentrations: Union[list, np.ndarray],
-                       subpopulation_index: Union[int, str] = 'best'):
-    """
-    Plots the growth rate curves for different subpopulations.
-    Arguments:
-        * results: Dictionary with results returned by mixture_id.
-        * concentrations: List of concentrations considered.
-        * subpopulation_index: Number of max. subpopulations for which growth rates should be plotted. Default is 'best'
-        as defined by the model selection criteria used in mixture_id.
-    """
-    if subpopulation_index == 'best':
-        subpopulation_index = results['summary']['estimated_num_populations']
-    x_final = results[f'{subpopulation_index}_subpopulations']['final_parameters']
-    ax = plt.figure(figsize=(10, 8))
-    for i in range(subpopulation_index):
-        param = x_final[4 * i + subpopulation_index - 1:4 * i + subpopulation_index + 3]
-        plt.semilogx(concentrations, [rate_expo(param, x) for x in sorted(concentrations)], '-*', linewidth=3,
-                     label="Subpopulation #%s" % (i + 1))
-
-    plt.xlabel('Drug Concentration')
-    plt.ylabel('Growth rate')
-    plt.title('Estimated growth rates')
-    plt.legend()
-    return ax
-
-
 def plot_neg_llh(results: Dict):
     """
     Plots the negative log-likelihood values for all considered models
@@ -153,3 +126,67 @@ def plot_in_conc(data_file: str,
     plt.tight_layout()
     plt.show()
     return ax
+
+
+def plot_gr50(results: Union[Dict, list],
+              concentrations: Union[list, np.ndarray],
+              subpopulation_indices: Union[int, str, list]):
+    if isinstance(results, list):
+        if len(results) != len(concentrations):
+            raise ValueError
+        f, ax = plt.subplots(len(results), 2, gridspec_kw={'width_ratios': [1, 3]})
+        for res_idx, (result, concentration, subpopulation_idx) in enumerate(zip(results, concentrations, subpopulation_indices)):
+            ax1 = ax[res_idx, 0]
+            ax2 = ax[res_idx, 1]
+            if res_idx == 0:
+                ax1.set_title('Estimated mixture')
+                ax2.set_title('Estimated GR50 values')
+
+            plot_gr50_subplot(ax1, ax2, result, concentration, subpopulation_idx)
+    return
+
+
+def plot_gr50_subplot(ax1,
+                      ax2,
+                      result: Dict,
+                      concentrations: Union[list, np.ndarray],
+                      subpopulation_index: Union[int, str] = 'best'):
+    default_colors = ['#2b1d72', '#b83d52', '#d2bc4b', '#aa4499', '#882255', '#88ccee', '#44aa99', '#999933', '#117733',
+                      '#dddddd']
+    if subpopulation_index == 'best':
+        subpopulation_index = result['summary']['estimated_num_populations']
+    mixture_params = list(result['summary']['final_parameters'][:subpopulation_index - 1])
+    mixture_params.append(1 - np.sum(mixture_params))
+    mixture_params = np.array(mixture_params)
+    gr50 = np.array(result[f'{subpopulation_index}_subpopulations']['gr50'])
+    gr50_ixs = np.argsort(gr50)
+    gr50 = gr50[gr50_ixs]
+    gr50 = list(gr50)
+    mixture_params = mixture_params[gr50_ixs]
+    # f, (ax1, ax2) = plt.subplots(1, 2, gridspec_kw={'width_ratios': [1, 3]})
+    # f.set_size_inches(12, 3)
+    ax1.pie(mixture_params, labels=[f'{np.round(mixture_params[idx] * 100)}%' for idx in range(len(mixture_params))],
+            colors=default_colors, wedgeprops={'linewidth': 1, 'edgecolor': 'k'})
+
+    [ax2.semilogx([concentrations[i]] * 2, [0, 1], color='0.7') for i in range(len(concentrations))]
+    ax2.plot(gr50, [0.5] * len(gr50), 'ko', markerfacecolor='w', markersize=5, markeredgewidth=1.5)
+    for gr_idx, gr in enumerate(gr50):
+        upper_idx = list(concentrations < gr).index(False)
+        lower_conc = concentrations[upper_idx - 1]
+        upper_conc = concentrations[upper_idx]
+        ax2.fill_betweenx([0.25, 0.75], lower_conc, upper_conc, color=default_colors[gr_idx])
+    # axes = plt.gca()
+    ax2.spines['top'].set_visible(False)
+    ax2.spines['right'].set_visible(False)
+    ax2.spines['bottom'].set_visible(False)
+    ax2.spines['left'].set_visible(False)
+    ax2.get_yaxis().set_visible(False)
+    ax2.set_xticks(concentrations)
+    ticklabels = [0] + ['$10^{' + format(np.log10(elem), ".0f") + '}$' for elem in
+                        concentrations[1:len(concentrations)]]
+    ax2.set_xticklabels(ticklabels)
+    ax2.set_xscale('log')
+    ax2.minorticks_off()
+    plt.xlabel('Drug concentration')
+
+    # plt.tight_layout()
