@@ -289,11 +289,8 @@ def mixture_id(max_subpop: int,
                 else:
                     results[subpop_key]['fval'].append(result['fun'])
                     results[subpop_key]['parameters'].append(result['x'])
-            except Exception as err:
-                print(
-                    f'optimization failed for {num_subpop} subpopulations and start {n}, with initial parameters {x0}.'
-                    f'Error message: {err}'
-                )
+            except Exception:
+                pass
         final_idx = np.argmin(results[f'{num_subpop}_subpopulations']['fval'])
         fval = results[subpop_key]['fval'][final_idx]
         x_final = results[subpop_key]['parameters'][final_idx]
