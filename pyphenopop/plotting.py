@@ -133,17 +133,22 @@ def plot_gr50(results: Union[Dict, list],
               subpopulation_indices: Union[int, str, list]):
     if isinstance(results, list):
         if len(results) != len(concentrations):
-            raise ValueError
+            raise Exception('Result and concentration lists must have the same length.')
         f, ax = plt.subplots(len(results), 2, gridspec_kw={'width_ratios': [1, 3]})
-        for res_idx, (result, concentration, subpopulation_idx) in enumerate(zip(results, concentrations, subpopulation_indices)):
+        for res_idx, (result, concentration, subpopulation_idx) in enumerate(
+                zip(results, concentrations, subpopulation_indices)):
             ax1 = ax[res_idx, 0]
             ax2 = ax[res_idx, 1]
             if res_idx == 0:
                 ax1.set_title('Estimated mixture')
                 ax2.set_title('Estimated GR50 values')
-
             plot_gr50_subplot(ax1, ax2, result, concentration, subpopulation_idx)
-    return
+    elif isinstance(results, Dict):
+        f, ax = plt.subplots(1, 2, gridspec_kw={'width_ratios': [1, 3]})
+        plot_gr50_subplot(ax[0], ax[1], results, concentrations, subpopulation_indices)
+    else:
+        raise TypeError
+    return f
 
 
 def plot_gr50_subplot(ax1,
@@ -163,8 +168,7 @@ def plot_gr50_subplot(ax1,
     gr50 = gr50[gr50_ixs]
     gr50 = list(gr50)
     mixture_params = mixture_params[gr50_ixs]
-    # f, (ax1, ax2) = plt.subplots(1, 2, gridspec_kw={'width_ratios': [1, 3]})
-    # f.set_size_inches(12, 3)
+
     ax1.pie(mixture_params, labels=[f'{np.round(mixture_params[idx] * 100)}%' for idx in range(len(mixture_params))],
             colors=default_colors, wedgeprops={'linewidth': 1, 'edgecolor': 'k'})
 
@@ -175,18 +179,16 @@ def plot_gr50_subplot(ax1,
         lower_conc = concentrations[upper_idx - 1]
         upper_conc = concentrations[upper_idx]
         ax2.fill_betweenx([0.25, 0.75], lower_conc, upper_conc, color=default_colors[gr_idx])
-    # axes = plt.gca()
+
     ax2.spines['top'].set_visible(False)
     ax2.spines['right'].set_visible(False)
     ax2.spines['bottom'].set_visible(False)
     ax2.spines['left'].set_visible(False)
     ax2.get_yaxis().set_visible(False)
     ax2.set_xticks(concentrations)
-    ticklabels = [0] + ['$10^{' + format(np.log10(elem), ".0f") + '}$' for elem in
-                        concentrations[1:len(concentrations)]]
+    ticklabels = ['0'] + ['$10^{' + format(np.log10(elem), ".0f") + '}$' for elem in
+                          concentrations[1:len(concentrations)]]
     ax2.set_xticklabels(ticklabels)
     ax2.set_xscale('log')
     ax2.minorticks_off()
     plt.xlabel('Drug concentration')
-
-    # plt.tight_layout()
