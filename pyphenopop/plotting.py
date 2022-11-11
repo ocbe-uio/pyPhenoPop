@@ -173,11 +173,17 @@ def plot_gr50_subplot(ax1,
             colors=default_colors, wedgeprops={'linewidth': 1, 'edgecolor': 'k'})
 
     [ax2.semilogx([concentrations[i]] * 2, [0, 1], color='0.7') for i in range(len(concentrations))]
-    ax2.plot(gr50, [0.5] * len(gr50), 'ko', markerfacecolor='w', markersize=5, markeredgewidth=1.5)
+
     for gr_idx, gr in enumerate(gr50):
-        upper_idx = list(concentrations < gr).index(False)
-        lower_conc = concentrations[upper_idx - 1]
-        upper_conc = concentrations[upper_idx]
+        gr_larger_conc = list(concentrations < gr)
+        if all(gr_larger_conc):
+            lower_conc = np.max(concentrations)
+            upper_conc = lower_conc + (np.max(concentrations) - np.min(concentrations))
+        else:
+            upper_idx = gr_larger_conc.index(False)
+            lower_conc = concentrations[upper_idx - 1]
+            upper_conc = concentrations[upper_idx]
+            ax2.plot(gr, [0.5], 'ko', markerfacecolor='w', markersize=5, markeredgewidth=1.5)
         ax2.fill_betweenx([0.25, 0.75], lower_conc, upper_conc, color=default_colors[gr_idx])
 
     ax2.spines['top'].set_visible(False)
