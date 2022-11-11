@@ -3,6 +3,7 @@ import numpy as np
 from typing import Dict, Union
 from pyphenopop.mixpopid import rate_expo
 import pandas as pd
+import copy
 
 
 def plot_neg_llh(results: Dict):
@@ -158,6 +159,11 @@ def plot_gr50_subplot(ax1,
                       subpopulation_index: Union[int, str] = 'best'):
     default_colors = ['#2b1d72', '#b83d52', '#d2bc4b', '#aa4499', '#882255', '#88ccee', '#44aa99', '#999933', '#117733',
                       '#dddddd']
+    concentration_ticks = copy.copy(concentrations)
+    if concentration_ticks[0] == 0.0:
+        concentration_ticks[0] = concentration_ticks[1]*0.1
+    xticks = list(dict.fromkeys(list(np.round(np.log10(concentration_ticks)))))
+    xticks[0] = np.log10(concentration_ticks[0])
     if subpopulation_index == 'best':
         subpopulation_index = result['summary']['estimated_num_populations']
     mixture_params = list(result['summary']['final_parameters'][:subpopulation_index - 1])
@@ -172,17 +178,17 @@ def plot_gr50_subplot(ax1,
     ax1.pie(mixture_params, labels=[f'{np.round(mixture_params[idx] * 100)}%' for idx in range(len(mixture_params))],
             colors=default_colors, wedgeprops={'linewidth': 1, 'edgecolor': 'k'})
 
-    [ax2.semilogx([concentrations[i]] * 2, [0, 1], color='0.7') for i in range(len(concentrations))]
+    [ax2.semilogx([concentration_ticks[i]] * 2, [0, 1], color='0.7') for i in range(len(concentration_ticks))]
 
     for gr_idx, gr in enumerate(gr50):
-        gr_larger_conc = list(concentrations < gr)
+        gr_larger_conc = list(concentration_ticks < gr)
         if all(gr_larger_conc):
-            lower_conc = np.max(concentrations)
-            upper_conc = lower_conc + (np.max(concentrations) - np.min(concentrations))
+            lower_conc = np.max(concentration_ticks)
+            upper_conc = lower_conc + (np.max(concentration_ticks) - np.min(concentration_ticks))
         else:
             upper_idx = gr_larger_conc.index(False)
-            lower_conc = concentrations[upper_idx - 1]
-            upper_conc = concentrations[upper_idx]
+            lower_conc = concentration_ticks[upper_idx - 1]
+            upper_conc = concentration_ticks[upper_idx]
             ax2.plot(gr, [0.5], 'ko', markerfacecolor='w', markersize=5, markeredgewidth=1.5)
         ax2.fill_betweenx([0.25, 0.75], lower_conc, upper_conc, color=default_colors[gr_idx])
 
@@ -191,10 +197,13 @@ def plot_gr50_subplot(ax1,
     ax2.spines['bottom'].set_visible(False)
     ax2.spines['left'].set_visible(False)
     ax2.get_yaxis().set_visible(False)
-    ax2.set_xticks(concentrations)
+    # ax2.set_xticks(concentrations)
     ticklabels = ['0'] + ['$10^{' + format(np.log10(elem), ".0f") + '}$' for elem in
-                          concentrations[1:len(concentrations)]]
-    ax2.set_xticklabels(ticklabels)
+                          concentration_ticks[1:]]
+    ticklabels = list(dict.fromkeys(ticklabels))
+    #ax2.set_xticklabels(ticklabels)
     ax2.set_xscale('log')
+    ax2.set_xticks(10 ** np.array(xticks), ticklabels)
+
     ax2.minorticks_off()
     plt.xlabel('Drug concentration')
