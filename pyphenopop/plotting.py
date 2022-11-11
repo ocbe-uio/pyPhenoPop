@@ -132,6 +132,13 @@ def plot_in_conc(data_file: str,
 def plot_gr50(results: Union[Dict, list],
               concentrations: Union[list, np.ndarray],
               subpopulation_indices: Union[int, str, list]):
+    """
+    Arguments:
+        * results: Results dictionary.
+        * concentrations: List of concentrations considered.
+        * subpopulation_indices: Number of subpopulations (either an integer or 'best', if the best model should be
+        taken).
+    """
     if isinstance(results, list):
         if len(results) != len(concentrations):
             raise Exception('Result and concentration lists must have the same length.')
@@ -161,9 +168,10 @@ def plot_gr50_subplot(ax1,
                       '#dddddd']
     concentration_ticks = copy.copy(concentrations)
     if concentration_ticks[0] == 0.0:
-        concentration_ticks[0] = concentration_ticks[1]*0.1
+        concentration_ticks[0] = concentration_ticks[1] * 0.1
     xticks = list(dict.fromkeys(list(np.round(np.log10(concentration_ticks)))))
-    xticks[0] = np.log10(concentration_ticks[0])
+    if concentrations[0] == 0.0:
+        xticks[0] = np.log10(concentration_ticks[0])
     if subpopulation_index == 'best':
         subpopulation_index = result['summary']['estimated_num_populations']
     mixture_params = list(result['summary']['final_parameters'][:subpopulation_index - 1])
@@ -197,11 +205,13 @@ def plot_gr50_subplot(ax1,
     ax2.spines['bottom'].set_visible(False)
     ax2.spines['left'].set_visible(False)
     ax2.get_yaxis().set_visible(False)
-    # ax2.set_xticks(concentrations)
-    ticklabels = ['0'] + ['$10^{' + format(np.log10(elem), ".0f") + '}$' for elem in
-                          concentration_ticks[1:]]
+    if concentration_ticks[0] == 0.0:
+        ticklabels = ['0'] + ['$10^{' + format(np.log10(elem), ".0f") + '}$' for elem in
+                              concentration_ticks[1:]]
+    else:
+        ticklabels = ['$10^{' + format(np.log10(elem), ".0f") + '}$' for elem in
+                      concentration_ticks]
     ticklabels = list(dict.fromkeys(ticklabels))
-    #ax2.set_xticklabels(ticklabels)
     ax2.set_xscale('log')
     ax2.set_xticks(10 ** np.array(xticks), ticklabels)
 
