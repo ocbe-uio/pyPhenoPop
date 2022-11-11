@@ -205,7 +205,7 @@ def plot_gr50_subplot(ax1,
     ax2.spines['bottom'].set_visible(False)
     ax2.spines['left'].set_visible(False)
     ax2.get_yaxis().set_visible(False)
-    if concentration_ticks[0] == 0.0:
+    if concentrations[0] == 0.0:
         ticklabels = ['0'] + ['$10^{' + format(np.log10(elem), ".0f") + '}$' for elem in
                               concentration_ticks[1:]]
     else:
