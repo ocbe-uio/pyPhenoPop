@@ -3,33 +3,8 @@ import numpy as np
 from typing import Dict, Union
 from pyphenopop.mixpopid import rate_expo
 import pandas as pd
-
-
-def plot_growth_curves(results: Dict,
-                       concentrations: Union[list, np.ndarray],
-                       subpopulation_index: Union[int, str] = 'best'):
-    """
-    Plots the growth rate curves for different subpopulations.
-    Arguments:
-        * results: Dictionary with results returned by mixture_id.
-        * concentrations: List of concentrations considered.
-        * subpopulation_index: Number of max. subpopulations for which growth rates should be plotted. Default is 'best'
-        as defined by the model selection criteria used in mixture_id.
-    """
-    if subpopulation_index == 'best':
-        subpopulation_index = results['summary']['estimated_num_populations']
-    x_final = results[f'{subpopulation_index}_subpopulations']['final_parameters']
-    ax = plt.figure(figsize=(10, 8))
-    for i in range(subpopulation_index):
-        param = x_final[4 * i + subpopulation_index - 1:4 * i + subpopulation_index + 3]
-        plt.semilogx(concentrations, [rate_expo(param, x) for x in sorted(concentrations)], '-*', linewidth=3,
-                     label="Subpopulation #%s" % (i + 1))
-
-    plt.xlabel('Drug Concentration')
-    plt.ylabel('Growth rate')
-    plt.title('Estimated growth rates')
-    plt.legend()
-    return ax
+import copy
+from matplotlib.ticker import MaxNLocator
 
 
 def plot_neg_llh(results: Dict):
@@ -57,6 +32,8 @@ def plot_bic(results: Dict):
     plt.plot(range(1, len(results)), final_bic, 'o-')
     plt.ylabel('BIC')
     plt.xlabel('Number of inferred populations')
+    plt.gca().xaxis.set_major_locator(MaxNLocator(integer=True))
+
     return ax
 
 
@@ -71,6 +48,7 @@ def plot_aic(results: Dict):
     plt.plot(range(1, len(results)), final_bic, 'o-')
     plt.ylabel('AIC')
     plt.xlabel('Number of inferred populations')
+    plt.gca().xaxis.set_major_locator(MaxNLocator(integer=True))
     return ax
 
 
@@ -153,3 +131,93 @@ def plot_in_conc(data_file: str,
     plt.tight_layout()
     plt.show()
     return ax
+
+
+def plot_gr50(results: Union[Dict, list],
+              concentrations: Union[list, np.ndarray],
+              subpopulation_indices: Union[int, str, list]):
+    """
+    Arguments:
+        * results: Results dictionary.
+        * concentrations: List of concentrations considered.
+        * subpopulation_indices: Number of subpopulations (either an integer or 'best', if the best model should be
+        taken).
+    """
+    if isinstance(results, list):
+        if len(results) != len(concentrations):
+            raise Exception('Result and concentration lists must have the same length.')
+        f, ax = plt.subplots(len(results), 2, gridspec_kw={'width_ratios': [1, 3]})
+        for res_idx, (result, concentration, subpopulation_idx) in enumerate(
+                zip(results, concentrations, subpopulation_indices)):
+            ax1 = ax[res_idx, 0]
+            ax2 = ax[res_idx, 1]
+            if res_idx == 0:
+                ax1.set_title('Estimated mixture')
+                ax2.set_title('Estimated GR50 values')
+            plot_gr50_subplot(ax1, ax2, result, concentration, subpopulation_idx)
+    elif isinstance(results, Dict):
+        f, ax = plt.subplots(1, 2, gridspec_kw={'width_ratios': [1, 3]})
+        plot_gr50_subplot(ax[0], ax[1], results, concentrations, subpopulation_indices)
+    else:
+        raise TypeError
+    return f
+
+
+def plot_gr50_subplot(ax1,
+                      ax2,
+                      result: Dict,
+                      concentrations: Union[list, np.ndarray],
+                      subpopulation_index: Union[int, str] = 'best'):
+    default_colors = ['#2b1d72', '#b83d52', '#d2bc4b', '#aa4499', '#882255', '#88ccee', '#44aa99', '#999933', '#117733',
+                      '#dddddd']
+    concentration_ticks = copy.copy(concentrations)
+    if concentration_ticks[0] == 0.0:
+        concentration_ticks[0] = concentration_ticks[1] * 0.1
+    xticks = list(dict.fromkeys(list(np.round(np.log10(concentration_ticks)))))
+    if concentrations[0] == 0.0:
+        xticks[0] = np.log10(concentration_ticks[0])
+    if subpopulation_index == 'best':
+        subpopulation_index = result['summary']['estimated_num_populations']
+    mixture_params = list(result['summary']['final_parameters'][:subpopulation_index - 1])
+    mixture_params.append(1 - np.sum(mixture_params))
+    mixture_params = np.array(mixture_params)
+    gr50 = np.array(result[f'{subpopulation_index}_subpopulations']['gr50'])
+    gr50_ixs = np.argsort(gr50)
+    gr50 = gr50[gr50_ixs]
+    gr50 = list(gr50)
+    mixture_params = mixture_params[gr50_ixs]
+
+    ax1.pie(mixture_params, labels=[f'{np.round(mixture_params[idx] * 100)}%' for idx in range(len(mixture_params))],
+            colors=default_colors, wedgeprops={'linewidth': 1, 'edgecolor': 'k'})
+
+    [ax2.semilogx([concentration_ticks[i]] * 2, [0, 1], color='0.7') for i in range(len(concentration_ticks))]
+
+    for gr_idx, gr in enumerate(gr50):
+        gr_larger_conc = list(concentration_ticks < gr)
+        if all(gr_larger_conc):
+            lower_conc = np.max(concentration_ticks)
+            upper_conc = lower_conc + (np.max(concentration_ticks) - np.min(concentration_ticks))
+        else:
+            upper_idx = gr_larger_conc.index(False)
+            lower_conc = concentration_ticks[upper_idx - 1]
+            upper_conc = concentration_ticks[upper_idx]
+            ax2.plot(gr, [0.5], 'ko', markerfacecolor='w', markersize=5, markeredgewidth=1.5)
+        ax2.fill_betweenx([0.25, 0.75], lower_conc, upper_conc, color=default_colors[gr_idx])
+
+    ax2.spines['top'].set_visible(False)
+    ax2.spines['right'].set_visible(False)
+    ax2.spines['bottom'].set_visible(False)
+    ax2.spines['left'].set_visible(False)
+    ax2.get_yaxis().set_visible(False)
+    if concentrations[0] == 0.0:
+        ticklabels = ['0'] + ['$10^{' + format(np.log10(elem), ".0f") + '}$' for elem in
+                              concentration_ticks[1:]]
+    else:
+        ticklabels = ['$10^{' + format(np.log10(elem), ".0f") + '}$' for elem in
+                      concentration_ticks]
+    ticklabels = list(dict.fromkeys(ticklabels))
+    ax2.set_xscale('log')
+    ax2.set_xticks(10 ** np.array(xticks), ticklabels)
+
+    ax2.minorticks_off()
+    plt.xlabel('Drug concentration')

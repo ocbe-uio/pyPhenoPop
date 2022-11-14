@@ -7,7 +7,7 @@ import pandas as pd
 
 
 def rate_expo(parameters: list,
-              concentrations: np.ndarray):
+              concentrations: np.ndarray) -> np.ndarray:
     """
     A function calculating a growth rate of a certain cell population with 
     parameters exposed to a certain drug with given concentrations according
@@ -25,7 +25,7 @@ def rate_expo(parameters: list,
 
 def pop_expo(parameters: list,
              concentrations: np.ndarray,
-             timepoints: np.ndarray):
+             timepoints: np.ndarray) -> np.ndarray:
     """
     A function calculating a certain cell population count using a function
     'rate' at given time points according to the exponential cell population 
@@ -55,7 +55,7 @@ def neg_log_likelihood(max_subpop: int,
                        num_timepoints_high: np.ndarray,
                        num_conc_high_noise: np.ndarray,
                        num_noise_high: int,
-                       num_noise_low: int):
+                       num_noise_low: int) -> float:
     """
     This function calculates the negative log-likelihood for a given
     model. Function's minimum is the optimal parameter estimate. 
@@ -157,7 +157,7 @@ def mixture_id(max_subpop: int,
                bounds_sigma_low: Tuple = (1e-05, 5000.0),
                optimizer_options: Dict = None,
                num_optim: int = 200,
-               selection_method: str = 'BIC'):
+               selection_method: str = 'BIC') -> Dict:
     """
     This is a function that serves to determine the number of cell 
     subpopulations found in a given mixture with a maximum of PopN, and in what
@@ -275,7 +275,7 @@ def mixture_id(max_subpop: int,
 
         bnds, lb, ub = get_optimization_bounds(num_subpop, bounds_model, bounds_sigma_low, bounds_sigma_high)
 
-        for n in tqdm(np.arange(num_optim)):
+        for _ in tqdm(np.arange(num_optim)):
             x0 = np.random.uniform(lb, ub)
             try:
                 result = minimize(obj, x0, method=optimizer_options['method'], bounds=bnds,
@@ -289,11 +289,8 @@ def mixture_id(max_subpop: int,
                 else:
                     results[subpop_key]['fval'].append(result['fun'])
                     results[subpop_key]['parameters'].append(result['x'])
-            except Exception as err:
-                print(
-                    f'optimization failed for {num_subpop} subpopulations and start {n}, with initial parameters {x0}.'
-                    f'Error message: {err}'
-                )
+            except ValueError:
+                pass
         final_idx = np.argmin(results[f'{num_subpop}_subpopulations']['fval'])
         fval = results[subpop_key]['fval'][final_idx]
         x_final = results[subpop_key]['parameters'][final_idx]
@@ -378,7 +375,7 @@ def print_results(x_final_all: list,
 def get_optimization_bounds(num_subpop: int,
                             bounds_model: Dict,
                             bounds_sigma_low: Tuple,
-                            bounds_sigma_high: Tuple):
+                            bounds_sigma_high: Tuple) -> Tuple[Tuple, list, list]:
     """
     Arguments:
         * num_subpop: Number of subpopulations.
@@ -409,7 +406,7 @@ def get_optimization_bounds(num_subpop: int,
 
 def get_gr50(parameters: list,
              concentrations: Union[list, np.ndarray],
-             max_subpop: int):
+             max_subpop: int) -> list:
     """
     Calculate GR50 values.
 
