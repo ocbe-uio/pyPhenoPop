@@ -4,6 +4,7 @@ from typing import Dict, Union
 from pyphenopop.mixpopid import rate_expo
 import pandas as pd
 import copy
+from matplotlib.ticker import MaxNLocator
 
 
 def plot_neg_llh(results: Dict):
@@ -31,6 +32,8 @@ def plot_bic(results: Dict):
     plt.plot(range(1, len(results)), final_bic, 'o-')
     plt.ylabel('BIC')
     plt.xlabel('Number of inferred populations')
+    plt.gca().xaxis.set_major_locator(MaxNLocator(integer=True))
+
     return ax
 
 
@@ -45,6 +48,7 @@ def plot_aic(results: Dict):
     plt.plot(range(1, len(results)), final_bic, 'o-')
     plt.ylabel('AIC')
     plt.xlabel('Number of inferred populations')
+    plt.gca().xaxis.set_major_locator(MaxNLocator(integer=True))
     return ax
 
 
