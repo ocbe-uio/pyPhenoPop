@@ -170,12 +170,6 @@ def plot_gr50_subplot(ax1,
                       subpopulation_index: Union[int, str] = 'best'):
     default_colors = ['#2b1d72', '#b83d52', '#d2bc4b', '#aa4499', '#882255', '#88ccee', '#44aa99', '#999933', '#117733',
                       '#dddddd']
-    concentration_ticks = copy.copy(concentrations)
-    if concentration_ticks[0] == 0.0:
-        concentration_ticks[0] = concentration_ticks[1] * 0.1
-    xticks = list(dict.fromkeys(list(np.round(np.log10(concentration_ticks)))))
-    if concentrations[0] == 0.0:
-        xticks[0] = np.log10(concentration_ticks[0])
     if subpopulation_index == 'best':
         subpopulation_index = result['summary']['estimated_num_populations']
     mixture_params = list(result['summary']['final_parameters'][:subpopulation_index - 1])
@@ -186,6 +180,13 @@ def plot_gr50_subplot(ax1,
     gr50 = gr50[gr50_ixs]
     gr50 = list(gr50)
     mixture_params = mixture_params[gr50_ixs]
+
+    concentration_ticks = copy.copy(concentrations)
+    if concentration_ticks[0] == 0.0:
+        concentration_ticks[0] = np.min([concentration_ticks[1], np.min(gr50)]) * 0.1
+    xticks = list(dict.fromkeys(list(np.round(np.log10(concentration_ticks)))))
+    if concentrations[0] == 0.0:
+        xticks[0] = np.log10(concentration_ticks[0])
 
     ax1.pie(mixture_params, labels=[f'{np.round(mixture_params[idx] * 100)}%' for idx in range(len(mixture_params))],
             colors=default_colors, wedgeprops={'linewidth': 1, 'edgecolor': 'k'})
