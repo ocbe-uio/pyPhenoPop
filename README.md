@@ -1,5 +1,6 @@
 Mixed Cell Population Identification Package
 =======================
+[![PyPI](https://badge.fury.io/py/pyphenopop.svg)](https://badge.fury.io/py/pyphenopop)
 This package contains methods designed to determine the existance of 
 subpopulations with different responses to a given drug from a dataset of 
 screenings with that drug on the total cell population. The implementation is
