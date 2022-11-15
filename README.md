@@ -1,6 +1,9 @@
 Mixed Cell Population Identification Package
 =======================
-[![PyPI](https://badge.fury.io/py/pyphenopop.svg)](https://badge.fury.io/py/pyphenopop)
+[![PyPI version](https://badge.fury.io/py/pyphenopop.svg)](https://badge.fury.io/py/pyphenopop)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7323577.svg)](https://doi.org/10.5281/zenodo.7323577)
+
+
 
 This package contains methods designed to determine the existance of 
 subpopulations with different responses to a given drug from a dataset of 
