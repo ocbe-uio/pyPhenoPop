@@ -11,7 +11,7 @@ number of subpopulations, their mixture proportions and a dose-reponse curve
 for each of the subpopulations. 
 
 ## Install
-The package can be easily install via `pip install pyphenopop`. You can also install it from the [Github repository](https://github.uio.no/leonargs/pyPhenoPop) using 
+The package can be easily install via `pip install pyphenopop`. You can also install it from the [Github repository](https://github.com/ocbe-uio/pyPhenoPop) using 
 
 `pip install git+https://github.com/ocbe-uio/pyPhenoPop.git` 
 
