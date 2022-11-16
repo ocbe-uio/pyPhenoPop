@@ -1,6 +1,6 @@
 Mixed Cell Population Identification Package
 =======================
-[![PyPI version](https://badge.fury.io/py/pyphenopop.svg)](https://badge.fury.io/py/pyphenopop)
+[![PyPI version](https://badge.fury.io/py/pyphenopop.png)](https://badge.fury.io/py/pyphenopop)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7323577.svg)](https://doi.org/10.5281/zenodo.7323577)
 
 
