@@ -13,7 +13,7 @@ based on the method presented in the article
 The dataset should contatin cell viability data tested on C different drug concentrations over 
 N time points and containing R replicates. The package can then estimate the 
 number of subpopulations, their mixture proportions and a dose-reponse curve 
-for each of the subpopulations. 
+for each of the subpopulations. A Matlab package of the method is available at https://github.com/ocbe-uio/PhenoPop.
 
 ## Install
 The package can be easily install via `pip install pyphenopop`. You can also install it from the [Github repository](https://github.com/ocbe-uio/pyPhenoPop) using 
