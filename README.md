@@ -30,8 +30,27 @@ and installing from the local repository via
 
 ## Usage
 
-A tutorial using data from the original [publication](https://doi.org/10.1101/2022.01.17.476604) is provided in [`examples/tutorial.ipynb`](https://github.com/ocbe-uio/pyPhenoPop/blob/main/examples/tutorial.ipynb). Additional information can be obtained by executing
+A tutorial using data from the original [publication](https://doi.org/10.1016/j.crmeth.2023.100417) is provided in [`examples/tutorial.ipynb`](https://github.com/ocbe-uio/pyPhenoPop/blob/main/examples/tutorial.ipynb). Additional information can be obtained by executing
 
 ```
 from pyphenopop.mixpopid import mixture_id
 help(mixture_id)
+```
+
+## Publication
+
+When using pyPhenoPop in your project, please cite
+* Köhn-Luque, A., Myklebust, E. M., Tadele, D. S., Giliberto, M., Schmiester, L., Noory, J., ... & Foo, J. (2023). Phenotypic deconvolution in heterogeneous cancer cell populations using drug-screening data. Cell Reports Methods, 3(3).
+```
+@article{kohn2023phenotypic,
+  title={Phenotypic deconvolution in heterogeneous cancer cell populations using drug-screening data},
+  author = {Alvaro Köhn-Luque and Even Moa Myklebust and Dagim Shiferaw Tadele and Mariaserena Giliberto and Leonard Schmiester and Jasmine Noory and Elise Harivel and Polina Arsenteva and Shannon M. Mumenthaler and Fredrik Schjesvold and Kjetil Taskén and Jorrit M. Enserink and Kevin Leder and Arnoldo Frigessi and Jasmine Foo},
+  journal={Cell Reports Methods},
+  volume={3},
+  number={3},
+  year={2023},
+  doi={https://doi.org/10.1016/j.crmeth.2023.100417},
+  publisher={Elsevier}
+}
+
+```
