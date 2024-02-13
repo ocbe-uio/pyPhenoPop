@@ -1,15 +1,14 @@
+import copy
+from typing import Dict, Union
+
 import matplotlib.pyplot as plt
 import numpy as np
-from typing import Dict, Union
-from pyphenopop.mixpopid import rate_expo
 import pandas as pd
-import copy
 from matplotlib.ticker import MaxNLocator
 
 
 def plot_neg_llh(results: Dict):
-    """
-    Plots the negative log-likelihood values for all considered models
+    """Plot the negative log-likelihood values for all considered models.
     Arguments:
         * results: Dictionary with results returned by mixture_id.
     """
@@ -22,8 +21,7 @@ def plot_neg_llh(results: Dict):
 
 
 def plot_bic(results: Dict):
-    """
-    Plots the BIC values for all considered models
+    """Plot the BIC values for all considered models.
     Arguments:
         * results: Dictionary with results returned by mixture_id.
     """
@@ -38,8 +36,7 @@ def plot_bic(results: Dict):
 
 
 def plot_aic(results: Dict):
-    """
-    Plots the AIC values for all considered models
+    """Plot the AIC values for all considered models.
     Arguments:
         * results: Dictionary with results returned by mixture_id.
     """
@@ -57,8 +54,7 @@ def plot_in_time(data_file: str,
                  timepoints: Union[list, np.ndarray],
                  concentrations: Union[list, np.ndarray],
                  title: str = None):
-    """
-    Plots the data for each concentration over time.
+    """Plot the data for each concentration over time.
     Arguments:
         * data_file: Name of the file containing the measured cell counts.
         * num_replicates: number of replicates
@@ -95,8 +91,7 @@ def plot_in_conc(data_file: str,
                  timepoints: Union[list, np.ndarray],
                  concentrations: Union[list, np.ndarray],
                  title: str = None):
-    """
-    Plots the data for each timepoint over concentrations.
+    """Plot the data for each timepoint over concentrations.
     Arguments:
         * data_file: Name of the file containing the measured cell counts.
         * num_replicates: number of replicates
@@ -136,7 +131,7 @@ def plot_in_conc(data_file: str,
 def plot_gr50(results: Union[Dict, list],
               concentrations: Union[list, np.ndarray],
               subpopulation_indices: Union[int, str, list]):
-    """
+    """Plot the GR50 values for all considered models.
     Arguments:
         * results: Results dictionary.
         * concentrations: List of concentrations considered.
@@ -163,11 +158,21 @@ def plot_gr50(results: Union[Dict, list],
     return f
 
 
-def plot_gr50_subplot(ax1,
-                      ax2,
+def plot_gr50_subplot(ax1: plt.Axes,
+                      ax2: plt.Axes,
                       result: Dict,
                       concentrations: Union[list, np.ndarray],
                       subpopulation_index: Union[int, str] = 'best'):
+    """Plot the GR50 values for a single model.
+    Arguments:
+        * ax1: Axis for the mixture plot.
+        * ax2: Axis for the GR50 plot.
+        * result: Results dictionary.
+        * concentrations: List of concentrations considered.
+        * subpopulation_index: Number of subpopulations (either an integer or 'best', if the best model should be
+        taken).
+
+    """
     default_colors = ['#2b1d72', '#b83d52', '#d2bc4b', '#aa4499', '#882255', '#88ccee', '#44aa99', '#999933', '#117733',
                       '#dddddd']
     if subpopulation_index == 'best':
