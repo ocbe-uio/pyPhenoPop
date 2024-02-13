@@ -1,24 +1,23 @@
+from typing import Dict, Tuple, Union
+
 import numpy as np
-from scipy.optimize import minimize
-from scipy.optimize import brentq
-from typing import Union, Dict, Tuple
-from tqdm import tqdm
 import pandas as pd
+from scipy.optimize import brentq, minimize
+from tqdm import tqdm
 
 
 def rate_expo(parameters: list,
               concentrations: np.ndarray) -> np.ndarray:
-    """
-    A function calculating a growth rate of a certain cell population with 
+    """Calculate growth rate of cell population.
+    A function calculating a growth rate of a certain cell population with
     parameters exposed to a certain drug with given concentrations according
     to the exponential cell population growth model.
-    
+
     Arguments:
         * parameters: parameter vector containing 4 parameters (alpha, b, E, n)
         * concentrations: drug concentration vector
-        
-    """
 
+    """
     return parameters[0] + np.log(
         parameters[1] + (1 - parameters[1]) / (1 + (concentrations / parameters[2]) ** parameters[3]))
 
@@ -26,16 +25,16 @@ def rate_expo(parameters: list,
 def pop_expo(parameters: list,
              concentrations: np.ndarray,
              timepoints: np.ndarray) -> np.ndarray:
-    """
+    """Calculate cell population count.
     A function calculating a certain cell population count using a function
-    'rate' at given time points according to the exponential cell population 
+    'rate' at given time points according to the exponential cell population
     growth model.
-    
+
     Arguments:
         * parameters: parameter vector containing 4 parameters (alpha, b, E, n)
         * concentrations: drug concentration vector
         * timepoints: time vector
-        
+
     """
     # Reshaping the timepoints and the rates vectors to perform a multiplication:
     timepoints_rshpe = np.reshape(timepoints, (1, len(timepoints)))
@@ -56,32 +55,31 @@ def neg_log_likelihood(max_subpop: int,
                        num_conc_high_noise: np.ndarray,
                        num_noise_high: int,
                        num_noise_low: int) -> float:
-    """
+    """Calculate negative log-likelihood.
     This function calculates the negative log-likelihood for a given
-    model. Function's minimum is the optimal parameter estimate. 
-    
+    model. Function's minimum is the optimal parameter estimate.
+
     Arguments:
         * max_subpop: maximum number of cell subpopulations considered
         * parameters: Model parameters; for every model the first PopN-1 elements of
-        Params must be mixture parameters, the last two are higher and lower 
+        Params must be mixture parameters, the last two are higher and lower
         variance levels. Higher variance appears at concentration levels
         smaller than ConcT and time points after TimeT
         * measurements: Cell count at each independent variable condition. measurements should
-        be structured as follows: DATA[k][j][i] ia cell count for the k-th 
+        be structured as follows: DATA[k][j][i] ia cell count for the k-th
         replicate at the j-th concentration at the i-th time point
         * concvec: List of concentrations considered measured in micromoles
         * timevec: List of time points measured in hours
         * num_replicates: number of replicates
         * model: A string representing a cell population growth model
         considered, for example 'expo' means exponential model. This variable
-        determines a form of the parameter vector and a function calculating 
+        determines a form of the parameter vector and a function calculating
         cell population number.
         * num_timepoints_high: Number of time points with higher level of noise
         * num_conc_high_noise: Number of concentrations with higher level of noise
         * num_noise_high: Number of data points with high level of noise
         * num_noise_low: Number of data points with low level of noise
     """
-
     # Creating a mixture parameter vector:
     if max_subpop > 1:
         mixture_params = parameters[0:max_subpop - 1]
@@ -158,44 +156,44 @@ def mixture_id(max_subpop: int,
                optimizer_options: Dict = None,
                num_optim: int = 200,
                selection_method: str = 'BIC') -> Dict:
-    """
-    This is a function that serves to determine the number of cell 
+    """Determine the number of subpopulations and their parameters.
+    This is a function that serves to determine the number of cell
     subpopulations found in a given mixture with a maximum of PopN, and in what
-    proportion these subpopulations are admixed, as well as model specific 
+    proportion these subpopulations are admixed, as well as model specific
     subpopulation parameters based on the cell count data.
-    
-    The data provided by the user along with the independent variables vectors 
-    (concentration levels, time points and number of replicates) is used to 
+
+    The data provided by the user along with the independent variables vectors
+    (concentration levels, time points and number of replicates) is used to
     find the parameter vector that better fits the data into the model, that is
-    the one that minimizes the objective function that 
-    calculates the negative log-likelihood for the chosen model. 
-    The algorithm is based on the function 'minimize' from the optimization 
-    package 'scipy.optimize'. User can specify a reference model, parameter 
+    the one that minimizes the objective function that
+    calculates the negative log-likelihood for the chosen model.
+    The algorithm is based on the function 'minimize' from the optimization
+    package 'scipy.optimize'. User can specify a reference model, parameter
     bounds used in optimization and a number of optimization attempts.
-    
-    This function performs this optimization procedure for all possible 
-    population numbers ranging from 1 to PopN (the maximum number given by the 
-    user), and selects N (estimated number of subpopulations) that the 
-    corresponding model better fits the data using BIC (Bayesian information 
+
+    This function performs this optimization procedure for all possible
+    population numbers ranging from 1 to PopN (the maximum number given by the
+    user), and selects N (estimated number of subpopulations) that the
+    corresponding model better fits the data using BIC (Bayesian information
     criterion). The function returns a parameter vector in a form
-    of an array. The first N-1 parameters are estimated proportions of N-1 
-    subpopulations in the mixture (respectively, the N-th subpopulation's 
+    of an array. The first N-1 parameters are estimated proportions of N-1
+    subpopulations in the mixture (respectively, the N-th subpopulation's
     proportion in the mixture is 1 minus their sum). The last two are estimated
-    variance levels of the mixture (higher and lower depending on the 
-    concentration level and on the time point considered). The rest are model 
-    parameters; for example, in case of the exponential growth model every 
-    cell line is characterized by 4 parameters (alpha, b: minimal drug response 
-    value, E: IC50 and n: steepness parameter), therefore the middle part of 
-    the vector is in the following form: 
+    variance levels of the mixture (higher and lower depending on the
+    concentration level and on the time point considered). The rest are model
+    parameters; for example, in case of the exponential growth model every
+    cell line is characterized by 4 parameters (alpha, b: minimal drug response
+    value, E: IC50 and n: steepness parameter), therefore the middle part of
+    the vector is in the following form:
     (alpha1, b1, E1, n1, ..., alpha_N, b_N, E_PopN, n_N).
-    
-    Additionally, this function produces graphs of the estimated growth rates 
-    for all subpopulations considered in response to the increase in drug 
-    concentration. Combined with the mixture parameter information, these 
+
+    Additionally, this function produces graphs of the estimated growth rates
+    for all subpopulations considered in response to the increase in drug
+    concentration. Combined with the mixture parameter information, these
     graphs help to determine to what extent every subpopulation in the mixture,
     major or minor, is responsive to the drug, which is useful information to
-    design personalized treatment strategies. 
-    
+    design personalized treatment strategies.
+
     Arguments:
         * max_subpop: maximum number of cell subpopulations considered
         * data_file: Name of the file containing the measured cell counts.
@@ -215,7 +213,6 @@ def mixture_id(max_subpop: int,
         * num_optim: number of objective function optimization attempts; default: num_optim = 200
         * selection_method: Model selection method. Either 'AIC' or 'BIC'.
     """
-
     if bounds_model is None:
         bounds_model = {'alpha': (0.0, 0.1), 'b': (0.0, 1.0), 'E': (1e-06, 15), 'n': (0.01, 10)}
     elif set(bounds_model.keys()) != {'alpha', 'b', 'E', 'n'}:
@@ -260,7 +257,7 @@ def mixture_id(max_subpop: int,
         subpop_key = f'{num_subpop}_subpopulations'
         results[subpop_key] = {'fval': [], 'parameters': [], 'BIC': np.inf, 'AIC': np.inf}
 
-        def obj(x):
+        def obj(x, num_subpop=num_subpop):
             return neg_log_likelihood(num_subpop,
                                       x,
                                       measurements,
@@ -339,7 +336,7 @@ def print_results(x_final_all: list,
                   concentrations: Union[list, np.ndarray],
                   model: str,
                   selection_method: str):
-    """
+    """Print results for a specific subpopulation model.
     Prints a summary of the results for a specific subpopulation model (usually the best model defined by the
     selection_method.
     Arguments:
@@ -376,7 +373,7 @@ def get_optimization_bounds(num_subpop: int,
                             bounds_model: Dict,
                             bounds_sigma_low: Tuple,
                             bounds_sigma_high: Tuple) -> Tuple[Tuple, list, list]:
-    """
+    """Get optimization bounds.
     Arguments:
         * num_subpop: Number of subpopulations.
         * bounds_model: Dictionary with parameter bounds for 'alpha', 'b', 'E' and 'n'.
@@ -407,8 +404,7 @@ def get_optimization_bounds(num_subpop: int,
 def get_gr50(parameters: list,
              concentrations: Union[list, np.ndarray],
              max_subpop: int) -> list:
-    """
-    Calculate GR50 values.
+    """Calculate GR50 values.
 
     Arguments:
         * parameters: Model parameters used for GR50 calculations.
@@ -421,13 +417,16 @@ def get_gr50(parameters: list,
     min_conc = np.min(concentrations)
     max_conc = np.max(concentrations)
     gr50_all = []
+
+    gr_min_conc_list = [rate_expo(parameters_per_subpop[pop_idx], min_conc) for pop_idx in range(max_subpop)]
+    gr_max_conc_list = [rate_expo(parameters_per_subpop[pop_idx], max_conc) for pop_idx in range(max_subpop)]
+
     for pop_idx in range(max_subpop):
-        gr_min_conc = rate_expo(parameters_per_subpop[pop_idx], min_conc)
-        gr_max_conc = rate_expo(parameters_per_subpop[pop_idx], max_conc)
 
         try:
             gr50 = brentq(
-                lambda x: gr_max_conc + gr_min_conc - 2 * rate_expo(parameters_per_subpop[pop_idx], x),
+                lambda x, pop_idx=pop_idx: gr_max_conc_list[pop_idx] + gr_min_conc_list[pop_idx] - 2 * rate_expo(
+                    parameters_per_subpop[pop_idx], x),
                 0.0000001,
                 max_conc)
             gr50_all.append(gr50)

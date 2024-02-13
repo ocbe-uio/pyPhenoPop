@@ -1,0 +1,18 @@
+########################
+# Flake8 Configuration #
+########################
+
+[flake8]
+max-line-length = 120
+
+extend-ignore =
+    # D100: Missing docstring in public module
+    D100
+    # T201 print found
+    T201
+    # D205: 1 blank line required between summary line and description
+    D205
+
+
+per-file-ignores =
+    */__init__.py:D104
