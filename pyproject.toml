@@ -8,4 +8,4 @@ build-backend = "setuptools.build_meta"
 
 [tool.pytest.ini_options]
 testpaths = "tests"
-addopts = "--cov=pyphenopop --cov-report=xml"
+addopts = "--cov=./ --cov-report=xml"
