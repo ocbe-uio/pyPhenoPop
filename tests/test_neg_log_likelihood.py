@@ -16,8 +16,8 @@ class TestNegLogLikelihood(unittest.TestCase):
         self.timevec = np.array([0, 24, 48])
         self.num_replicates = 2
         self.model = 'expo'
-        self.num_timepoints_high = 1
-        self.num_conc_high_noise = 1
+        self.num_timepoints_high = np.array(1)
+        self.num_conc_high_noise = np.array(1)
         self.num_noise_high = 1
         self.num_noise_low = 1
 
