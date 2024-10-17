@@ -9,7 +9,8 @@ RUN apt-get update \
     python-is-python3 \
     python3 \
     python3-dev \
-    python3-pip
+    python3-pip \
+    && apt-get clean
 
 RUN pip3 install --no-cache-dir -U --upgrade pip wheel \
     && pip3 install --no-cache-dir pyphenopop
