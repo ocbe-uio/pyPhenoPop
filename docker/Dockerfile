@@ -11,5 +11,5 @@ RUN apt-get update \
     python3-dev \
     python3-pip
 
-RUN pip3 install -U --upgrade pip wheel \
-    && pip3 install pyphenopop
+RUN pip3 install --no-cache-dir -U --upgrade pip wheel \
+    && pip3 install --no-cache-dir pyphenopop
